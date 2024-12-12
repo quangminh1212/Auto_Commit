@@ -2,6 +2,41 @@
 
 Ứng dụng tự động tạo commit cho các thay đổi trong Git repository
 
+## Công nghệ sử dụng
+
+- **Ngôn ngữ:** Python 3.x
+- **Thư viện chính:**
+  - watchdog: Theo dõi thay đổi file system
+  - GitPython: Tương tác với Git
+  - PyYAML: Đọc file cấu hình YAML
+  - PyGithub: Tương tác với GitHub API
+  - logging: Ghi log hệ thống
+  - schedule: Lập lịch tự động
+
+## Tính năng chi tiết
+
+### Quản lý File
+- Theo dõi thay đổi real-time trong thư mục được chỉ định
+- Phát hiện file mới, file bị xóa, file được sửa đổi
+- Lọc file theo pattern (gitignore)
+
+### Xử lý Git
+- Tự động git add cho files thay đổi
+- Tạo commit message theo template
+- Hỗ trợ multiple repositories
+- Push tự động lên remote repository
+
+### Tích hợp GitHub
+- Xác thực qua GitHub API
+- Tạo/Cập nhật Pull Request
+- Quản lý branch
+
+### Cấu hình & Quản lý
+- Cấu hình qua file YAML
+- Ghi log chi tiết
+- Lập lịch commit tự động
+- Thông báo qua email/webhook
+
 ## Tính năng
 
 - Tự động theo dõi thay đổi trong thư mục được chỉ định
