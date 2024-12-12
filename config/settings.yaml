@@ -1,0 +1,18 @@
+# Repository settings
+repo_path: "."
+watch_path: "."
+github_token: ""  # Your GitHub token here
+
+# Commit settings
+commit_delay: 5  # Seconds to wait before creating a commit
+auto_push: true
+
+# Logging
+log_level: "INFO"
+log_file: "auto_commit.log"
+
+# File patterns to ignore (in addition to .gitignore)
+ignore_patterns:
+  - "*.tmp"
+  - "*.log"
+  - "__pycache__" 
