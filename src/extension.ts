@@ -2,11 +2,15 @@ import * as vscode from 'vscode';
 import { GitService } from './services/gitService';
 import { ConfigService } from './services/configService';
 import { StatusBarService } from './services/statusBar';
+import { WebviewService } from './services/webviewService';
+import { HistoryService } from './services/historyService';
 
 export function activate(context: vscode.ExtensionContext) {
     const configService = new ConfigService();
     const gitService = new GitService();
     const statusBar = new StatusBarService();
+    const historyService = new HistoryService();
+    const webviewService = new WebviewService(historyService);
 
     let fileWatcher: vscode.FileSystemWatcher | undefined;
     let commitTimeout: NodeJS.Timeout | undefined;
@@ -49,7 +53,28 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('Auto Commit disabled');
     });
 
-    context.subscriptions.push(enableCommand, disableCommand);
+    // Add new command to show history
+    let showHistoryCommand = vscode.commands.registerCommand(
+        'auto-commit.showHistory',
+        () => {
+            webviewService.show();
+        }
+    );
+
+    // Add command to batch commit
+    let batchCommitCommand = vscode.commands.registerCommand(
+        'auto-commit.batchCommit',
+        async () => {
+            await gitService.batchCommit(configService.getDelay());
+        }
+    );
+
+    context.subscriptions.push(
+        enableCommand,
+        disableCommand,
+        showHistoryCommand,
+        batchCommitCommand
+    );
 }
 
 export function deactivate() {} 
