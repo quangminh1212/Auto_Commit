@@ -1,0 +1,59 @@
+{
+  "name": "auto-commit-vscode",
+  "displayName": "Auto Commit",
+  "description": "Automatically create commits for file changes",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:auto-commit.enable",
+    "onCommand:auto-commit.disable"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "auto-commit.enable",
+        "title": "Enable Auto Commit"
+      },
+      {
+        "command": "auto-commit.disable",
+        "title": "Disable Auto Commit"
+      }
+    ],
+    "configuration": {
+      "title": "Auto Commit",
+      "properties": {
+        "autoCommit.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable/disable auto commit"
+        },
+        "autoCommit.delay": {
+          "type": "number",
+          "default": 30,
+          "description": "Delay in seconds before creating a commit"
+        },
+        "autoCommit.autoPush": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically push commits"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^16.x",
+    "@types/vscode": "^1.60.0",
+    "typescript": "^4.x"
+  }
+} 
