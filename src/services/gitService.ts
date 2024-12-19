@@ -32,6 +32,15 @@ export class GitService {
             .map(line => line.slice(3));
     }
 
+    /**
+     * Watches file changes and creates commits automatically
+     * @param uri - File URI that was changed
+     * @param details - Optional commit details
+     * @returns Promise<void>
+     * 
+     * Uses: child_process.exec to run git commands
+     * Pattern: Observer pattern for file changes
+     */
     async createCommit(uri: vscode.Uri, details?: string) {
         try {
             const relativePath = vscode.workspace.asRelativePath(uri);
@@ -53,6 +62,14 @@ export class GitService {
         }
     }
 
+    /**
+     * Groups multiple file changes into a single commit
+     * @param delay - Time to wait before creating batch commit
+     * @returns Promise<void>
+     * 
+     * Strategy: Groups files by type (feat, fix, docs, etc)
+     * Uses: git status to get changed files
+     */
     async batchCommit(delay: number = 30) {
         const changedFiles = await this.getChangedFiles();
         if (changedFiles.length === 0) return;
@@ -86,6 +103,31 @@ export class GitService {
         return groups;
     }
 
+    /**
+     * Determines the type of change based on file extension
+     * @param filePath - Path to the changed file
+     * @returns string - Commit type (feat, fix, docs, etc)
+     * 
+     * Rules:
+     * - .md, .txt -> docs
+     * - .ts, .js, .py -> feat
+     * - test files -> test
+     * - others -> chore
+     */
+    private getFileType(filePath: string): string {
+        if (filePath.match(/\.(md|txt)$/)) return 'docs';
+        if (filePath.match(/\.(ts|js|py|java)$/)) return 'feat';
+        if (filePath.match(/\.(test|spec)\./)) return 'test';
+        return 'chore';
+    }
+
+    /**
+     * Pushes commits to remote repository
+     * @returns Promise<void>
+     * 
+     * Uses: git push command
+     * Handles: Branch detection and error cases
+     */
     async push() {
         try {
             const branch = await this.getCurrentBranch();
@@ -101,12 +143,5 @@ export class GitService {
     private async getCurrentBranch(): Promise<string> {
         const { stdout } = await execAsync('git branch --show-current');
         return stdout.trim();
-    }
-
-    private getFileType(filePath: string): string {
-        if (filePath.match(/\.(md|txt)$/)) return 'docs';
-        if (filePath.match(/\.(ts|js|py|java)$/)) return 'feat';
-        if (filePath.match(/\.(test|spec)\./)) return 'test';
-        return 'chore';
     }
 } 
