@@ -4,7 +4,7 @@ watch_path: "."
 github_token: ""  # Your GitHub token here
 
 # Commit settings
-commit_delay: 5  # Seconds to wait before creating a commit
+commit_delay: 30  # Seconds to wait before creating a commit
 auto_push: true
 
 # Logging

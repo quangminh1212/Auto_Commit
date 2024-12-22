@@ -34,3 +34,16 @@ Mở Settings (Ctrl+,) và tìm "Auto Commit" để điều chỉnh:
 ## License
 
 MIT License
+
+.
+├── config/
+│   └── settings.yaml
+├── src/
+│   ├── core/
+│   │   ├── file_watcher.py
+│   │   └── git_handler.py
+│   ├── utils/
+│   │   └── config.py
+│   └── main.py
+├── requirements.txt
+└── run.py

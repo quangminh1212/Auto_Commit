@@ -9,6 +9,9 @@ class GitHandler:
         
     def handle_change(self, file_path, change_type):
         try:
+            if ".git" in file_path or file_path.endswith(('.pyc', '.swp')):
+                return
+            
             if change_type != "deleted":
                 self.repo.index.add([file_path])
             else:
