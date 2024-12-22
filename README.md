@@ -45,5 +45,5 @@ MIT License
 │   ├── utils/
 │   │   └── config.py
 │   └── main.py
-├── requirements.txt
+├��─ requirements.txt
 └── run.py

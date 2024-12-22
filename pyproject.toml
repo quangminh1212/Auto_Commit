@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "auto-commit"
+version = "0.1.0"
+description = "Auto commit changes to git repository"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+dependencies = [
+    "watchdog>=3.0.0",
+    "GitPython>=3.1.37",
+    "PyGithub>=2.1.1",
+    "PyYAML>=6.0.1",
+    "rich>=13.0.0",  # Thêm để làm đẹp output
+    "typer>=0.9.0",  # Thêm để xử lý CLI tốt hơn
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+auto-commit = "auto_commit.cli:app"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+multi-line-output = 3 
