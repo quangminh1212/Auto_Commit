@@ -37,7 +37,7 @@ class FileWatcher:
         
         # Create Qt application and window
         self.app = QApplication([])
-        self.window = MainWindow()
+        self.window = MainWindow(self.app)
         self.window.show()
         
     def start(self):

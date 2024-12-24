@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                            QPushButton, QTableWidget, QTableWidgetItem, QLabel,
-                           QStatusBar, QSystemTrayIcon, QMenu, QStyle)
+                           QStatusBar, QSystemTrayIcon, QMenu, QStyle, QApplication)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QFont
 from datetime import datetime
@@ -8,8 +8,9 @@ import sys
 import os
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, app: QApplication):
         super().__init__()
+        self.app = app
         self.setWindowTitle("Auto Commit")
         self.setMinimumSize(800, 600)
         
@@ -99,7 +100,7 @@ class MainWindow(QMainWindow):
         show_action = tray_menu.addAction("Show")
         show_action.triggered.connect(self.show)
         quit_action = tray_menu.addAction("Quit")
-        quit_action.triggered.connect(app.quit)
+        quit_action.triggered.connect(self.app.quit)
         self.tray.setContextMenu(tray_menu)
         self.tray.show()
         
