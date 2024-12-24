@@ -44,7 +44,7 @@ class FileWatcher:
         event_handler = ChangeHandler(self.git_handler, self.window)
         self.observer.schedule(
             event_handler,
-            self.config['watch_path'],
+            self.config['watch_path'], 
             recursive=True
         )
         
