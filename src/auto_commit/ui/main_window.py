@@ -1,280 +1,166 @@
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                           QPushButton, QTableWidget, QTableWidgetItem, QLabel,
-                           QStatusBar, QSystemTrayIcon, QMenu, QStyle, QApplication,
-                           QFrame, QHeaderView)
-from PyQt6.QtCore import Qt, QTimer, QSize
-from PyQt6.QtGui import QIcon, QFont, QColor
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, 
+                           QTableWidget, QTableWidgetItem, QLabel, QHeaderView,
+                           QApplication)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QColor
 from datetime import datetime
-import sys
-import os
-
-class CustomTableWidget(QTableWidget):
-    def __init__(self):
-        super().__init__()
-        self.setShowGrid(False)
-        self.setAlternatingRowColors(True)
-        self.verticalHeader().setVisible(False)
-        self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.horizontalHeader().setStretchLastSection(True)
-        self.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e1e;
-                alternate-background-color: #262626;
-                color: #ffffff;
-                border: none;
-                gridline-color: transparent;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #333333;
-            }
-            QTableWidget::item:selected {
-                background-color: #2d5a88;
-            }
-            QHeaderView::section {
-                background-color: #252525;
-                color: #ffffff;
-                padding: 8px;
-                border: none;
-                border-bottom: 2px solid #3daee9;
-                font-weight: bold;
-            }
-        """)
-
-class CustomButton(QPushButton):
-    def __init__(self, text, color="#3daee9"):
-        super().__init__(text)
-        self.setMinimumHeight(40)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {color};
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-size: 14px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {self._lighten_color(color)};
-            }}
-            QPushButton:pressed {{
-                background-color: {self._darken_color(color)};
-            }}
-            QPushButton:disabled {{
-                background-color: #555555;
-                color: #888888;
-            }}
-        """)
-
-    def _lighten_color(self, color, factor=120):
-        color = color.lstrip('#')
-        rgb = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
-        rgb = tuple(min(255, c + factor) for c in rgb)
-        return '#{:02x}{:02x}{:02x}'.format(*rgb)
-
-    def _darken_color(self, color, factor=30):
-        color = color.lstrip('#')
-        rgb = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
-        rgb = tuple(max(0, c - factor) for c in rgb)
-        return '#{:02x}{:02x}{:02x}'.format(*rgb)
 
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super().__init__()
         self.app = app
         self.setup_ui()
-        
+
     def setup_ui(self):
+        """Thiết lập giao diện đơn giản"""
+        # Cấu hình cửa sổ
         self.setWindowTitle("Auto Commit")
-        self.setMinimumSize(1000, 700)
+        self.setMinimumSize(800, 600)
         self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1a1a1a;
+            QMainWindow, QWidget {
+                background-color: #2b2b2b;
             }
             QLabel {
                 color: #ffffff;
-                font-size: 14px;
+                font-size: 16px;
+                padding: 10px;
             }
-            QStatusBar {
-                background-color: #252525;
+            QPushButton {
+                background-color: #3daee9;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 120px;
+                margin: 5px;
+            }
+            QPushButton:hover {
+                background-color: #4dc4ff;
+            }
+            QPushButton:disabled {
+                background-color: #666666;
+            }
+            QTableWidget {
+                background-color: #333333;
                 color: #ffffff;
-                border-top: 1px solid #333333;
+                gridline-color: #444444;
+                border: none;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+            QHeaderView::section {
+                background-color: #2b2b2b;
+                color: #ffffff;
+                padding: 5px;
+                border: none;
             }
         """)
-        
-        # Central Widget
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        layout.setSpacing(20)
-        layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Header
-        header_frame = QFrame()
-        header_frame.setStyleSheet("background-color: #252525; border-radius: 8px;")
-        header_layout = QVBoxLayout(header_frame)
-        
-        # Title
+
+        # Widget chính
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+
+        # Tiêu đề
         title = QLabel("Auto Commit")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #3daee9;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(title)
+        title.setStyleSheet("font-size: 24px; color: #3daee9; font-weight: bold;")
+        layout.addWidget(title)
+
+        # Trạng thái
+        self.status = QLabel("Status: Idle")
+        self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status)
+
+        # Nút điều khiển
+        self.start_btn = QPushButton("Start Watching")
+        self.start_btn.clicked.connect(self.start_watching)
+        layout.addWidget(self.start_btn)
+
+        # Bảng theo dõi
+        self.table = QTableWidget()
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["Time", "Type", "File"])
         
-        # Status
-        self.status_label = QLabel("Status: Idle")
-        self.status_label.setStyleSheet("color: #ffd700; font-size: 16px;")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(self.status_label)
+        # Cấu hình bảng
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         
-        layout.addWidget(header_frame)
-        
-        # Buttons
-        button_layout = QHBoxLayout()
-        self.start_button = CustomButton("Start Watching", "#2ecc71")
-        self.stop_button = CustomButton("Stop Watching", "#e74c3c")
-        self.stop_button.setEnabled(False)
-        button_layout.addWidget(self.start_button)
-        button_layout.addWidget(self.stop_button)
-        layout.addLayout(button_layout)
-        
-        # Table
-        self.table = CustomTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
+        self.table.verticalHeader().setVisible(False)
         layout.addWidget(self.table)
-        
-        # Status Bar
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready")
-        
-        # System Tray
-        self.setup_system_tray()
-        
-        # Connections
-        self.start_button.clicked.connect(self.start_watching)
-        self.stop_button.clicked.connect(self.stop_watching)
-        
-        # Timer for updates
+
+        # Timer cập nhật
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_table)
-        
-    def setup_system_tray(self):
-        self.tray = QSystemTrayIcon()
-        self.tray.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon))
-        tray_menu = QMenu()
-        show_action = tray_menu.addAction("Show")
-        show_action.triggered.connect(self.show)
-        quit_action = tray_menu.addAction("Quit")
-        quit_action.triggered.connect(self.app.quit)
-        self.tray.setContextMenu(tray_menu)
-        self.tray.show()
+        self.is_watching = False
 
-    def add_change(self, file_path: str, change_type: str, status: str = "committed"):
+    def add_change(self, file_path: str, change_type: str):
+        """Thêm thay đổi vào bảng"""
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
+
+        # Thời gian
         time_item = QTableWidgetItem(datetime.now().strftime("%H:%M:%S"))
+        time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Loại thay đổi
         type_item = QTableWidgetItem(change_type)
+        type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Tên file
         file_item = QTableWidgetItem(str(file_path))
-        status_item = QTableWidgetItem(status)
         
-        # Set colors based on change type
-        if change_type == "CREATED":
-            type_item.setForeground(QColor("#2ecc71"))  # Green
-        elif change_type == "MODIFIED":
-            type_item.setForeground(QColor("#f1c40f"))  # Yellow
-        elif change_type == "DELETED":
-            type_item.setForeground(QColor("#e74c3c"))  # Red
-            
-        items = [time_item, type_item, file_item, status_item]
-        for col, item in enumerate(items):
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.setItem(row, col, item)
+        # Màu sắc theo loại thay đổi
+        color = {
+            "CREATED": QColor("#2ecc71"),
+            "MODIFIED": QColor("#f1c40f"),
+            "DELETED": QColor("#e74c3c")
+        }.get(change_type, QColor("#ffffff"))
         
+        type_item.setForeground(color)
+
+        # Thêm vào bảng
+        self.table.setItem(row, 0, time_item)
+        self.table.setItem(row, 1, type_item)
+        self.table.setItem(row, 2, file_item)
+        
+        # Cuộn xuống dòng mới nhất
         self.table.scrollToBottom()
-        
+
+        # Giới hạn số dòng
+        MAX_ROWS = 1000
+        while self.table.rowCount() > MAX_ROWS:
+            self.table.removeRow(0)
+
     def start_watching(self):
-        """Bắt đầu theo dõi"""
-        try:
-            self.start_button.setEnabled(False)
-            self.stop_button.setEnabled(True)
-            self.status_label.setText("Status: Watching")
-            self.status_label.setStyleSheet("color: #2ecc71; font-size: 16px;")
-            self.timer.start(1000)  # Cập nhật mỗi giây
-            self.status_bar.showMessage("Watching for changes...")
-            
-        except Exception as e:
-            print(f"Error starting watch: {str(e)}")
-            self.status_bar.showMessage(f"Error: {str(e)}")
-            self.stop_watching()
+        """Bắt đầu/dừng theo dõi"""
+        if not self.is_watching:
+            self.is_watching = True
+            self.start_btn.setText("Stop Watching")
+            self.status.setText("Status: Watching")
+            self.status.setStyleSheet("color: #2ecc71")
+            self.timer.start(1000)
+        else:
+            self.is_watching = False
+            self.start_btn.setText("Start Watching")
+            self.status.setText("Status: Stopped")
+            self.status.setStyleSheet("color: #e74c3c")
+            self.timer.stop()
 
-    def stop_watching(self):
-        """Dừng theo dõi"""
-        try:
-            if self.timer.isActive():
-                self.timer.stop()
-            self.start_button.setEnabled(True)
-            self.stop_button.setEnabled(False)
-            self.status_label.setText("Status: Stopped")
-            self.status_label.setStyleSheet("color: #e74c3c; font-size: 16px;")
-            self.status_bar.showMessage("Watching stopped")
-            
-        except Exception as e:
-            print(f"Error stopping watch: {str(e)}")
-            self.status_bar.showMessage(f"Error: {str(e)}")
-        
     def update_table(self):
-        """Cập nhật bảng và xử lý lỗi"""
+        """Cập nhật bảng"""
         try:
-            # Cập nhật status bar
-            total_changes = self.table.rowCount()
-            self.status_bar.showMessage(f"Total changes: {total_changes}")
-            
-            # Giới hạn số lượng hàng trong bảng để tránh quá tải
-            MAX_ROWS = 1000
-            if total_changes > MAX_ROWS:
-                # Xóa các hàng cũ nhất
-                for _ in range(total_changes - MAX_ROWS):
-                    self.table.removeRow(0)
-            
-            # Xử lý các sự kiện Qt
             QApplication.processEvents()
-            
         except Exception as e:
-            print(f"Error updating table: {str(e)}")
-            self.status_bar.showMessage(f"Error: {str(e)}")
-    
-    def closeEvent(self, event):
-        """Xử lý sự kiện đóng window"""
-        try:
-            # Dừng timer trước khi đóng
-            if self.timer.isActive():
-                self.timer.stop()
-            
-            # Ẩn window thay vì đóng
-            self.hide()
-            self.tray.showMessage(
-                "Auto Commit",
-                "Application minimized to tray",
-                QSystemTrayIcon.MessageIcon.Information,
-                2000
-            )
-            event.ignore()
-            
-        except Exception as e:
-            print(f"Error closing window: {str(e)}")
-            event.accept()
+            print(f"Error updating: {e}")
 
-    def cleanup(self):
-        """Dọn dẹp resources trước khi đóng"""
-        try:
-            if self.timer.isActive():
-                self.timer.stop()
-            if self.tray is not None:
-                self.tray.hide()
-        except Exception as e:
-            print(f"Error during cleanup: {str(e)}") 
+    def closeEvent(self, event):
+        """Xử lý đóng cửa sổ"""
+        if self.timer.isActive():
+            self.timer.stop()
+        event.accept() 
