@@ -20,3 +20,6 @@ Một công cụ tự động theo dõi và commit các thay đổi trong reposi
 ## 🚀 Cài đặt
 
 1. Clone repository:
+```
+
+2. Tạo và kích hoạt môi trường ảo:
