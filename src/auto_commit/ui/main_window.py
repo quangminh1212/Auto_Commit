@@ -198,18 +198,34 @@ class MainWindow(QMainWindow):
         self.table.scrollToBottom()
         
     def start_watching(self):
-        self.start_button.setEnabled(False)
-        self.stop_button.setEnabled(True)
-        self.status_label.setText("Status: Watching")
-        self.status_label.setStyleSheet("color: #2ecc71; font-size: 16px;")
-        self.timer.start(1000)
-        
+        """Bắt đầu theo dõi"""
+        try:
+            self.start_button.setEnabled(False)
+            self.stop_button.setEnabled(True)
+            self.status_label.setText("Status: Watching")
+            self.status_label.setStyleSheet("color: #2ecc71; font-size: 16px;")
+            self.timer.start(1000)  # Cập nhật mỗi giây
+            self.status_bar.showMessage("Watching for changes...")
+            
+        except Exception as e:
+            print(f"Error starting watch: {str(e)}")
+            self.status_bar.showMessage(f"Error: {str(e)}")
+            self.stop_watching()
+
     def stop_watching(self):
-        self.start_button.setEnabled(True)
-        self.stop_button.setEnabled(False)
-        self.status_label.setText("Status: Stopped")
-        self.status_label.setStyleSheet("color: #e74c3c; font-size: 16px;")
-        self.timer.stop()
+        """Dừng theo dõi"""
+        try:
+            if self.timer.isActive():
+                self.timer.stop()
+            self.start_button.setEnabled(True)
+            self.stop_button.setEnabled(False)
+            self.status_label.setText("Status: Stopped")
+            self.status_label.setStyleSheet("color: #e74c3c; font-size: 16px;")
+            self.status_bar.showMessage("Watching stopped")
+            
+        except Exception as e:
+            print(f"Error stopping watch: {str(e)}")
+            self.status_bar.showMessage(f"Error: {str(e)}")
         
     def update_table(self):
         """Cập nhật bảng và xử lý lỗi"""
