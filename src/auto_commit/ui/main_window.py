@@ -212,14 +212,53 @@ class MainWindow(QMainWindow):
         self.timer.stop()
         
     def update_table(self):
-        pass
-        
+        """Cập nhật bảng và xử lý lỗi"""
+        try:
+            # Cập nhật status bar
+            total_changes = self.table.rowCount()
+            self.status_bar.showMessage(f"Total changes: {total_changes}")
+            
+            # Giới hạn số lượng hàng trong bảng để tránh quá tải
+            MAX_ROWS = 1000
+            if total_changes > MAX_ROWS:
+                # Xóa các hàng cũ nhất
+                for _ in range(total_changes - MAX_ROWS):
+                    self.table.removeRow(0)
+            
+            # Xử lý các sự kiện Qt
+            QApplication.processEvents()
+            
+        except Exception as e:
+            print(f"Error updating table: {str(e)}")
+            self.status_bar.showMessage(f"Error: {str(e)}")
+    
     def closeEvent(self, event):
-        self.hide()
-        self.tray.showMessage(
-            "Auto Commit",
-            "Application minimized to tray",
-            QSystemTrayIcon.MessageIcon.Information,
-            2000
-        )
-        event.ignore() 
+        """Xử lý sự kiện đóng window"""
+        try:
+            # Dừng timer trước khi đóng
+            if self.timer.isActive():
+                self.timer.stop()
+            
+            # Ẩn window thay vì đóng
+            self.hide()
+            self.tray.showMessage(
+                "Auto Commit",
+                "Application minimized to tray",
+                QSystemTrayIcon.MessageIcon.Information,
+                2000
+            )
+            event.ignore()
+            
+        except Exception as e:
+            print(f"Error closing window: {str(e)}")
+            event.accept()
+
+    def cleanup(self):
+        """Dọn dẹp resources trước khi đóng"""
+        try:
+            if self.timer.isActive():
+                self.timer.stop()
+            if self.tray is not None:
+                self.tray.hide()
+        except Exception as e:
+            print(f"Error during cleanup: {str(e)}") 
