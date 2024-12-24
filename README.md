@@ -132,4 +132,3 @@ MIT License - xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 - [Typer](https://github.com/tiangolo/typer)
 ```
 
-Commit message: `docs: add comprehensive project documentation to README`
