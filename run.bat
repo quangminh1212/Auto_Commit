@@ -8,7 +8,7 @@ if not exist "venv" (
 )
 
 REM Activate môi trường ảo
-call venv\Scripts\activate.bat
+call venv\Scripts\activate.bat 
 
 REM Kiểm tra và cài đặt dependencies
 pip install -e . 2>nul
