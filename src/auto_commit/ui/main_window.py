@@ -9,7 +9,7 @@ class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super().__init__()
         self.app = app 
-        self.setup_ui() 
+        self.setup_ui()  
         self.alt_press_time = None
         self.changes_to_commit = []
         self.commit_timer = QTimer()
