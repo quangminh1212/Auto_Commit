@@ -205,4 +205,4 @@ class MainWindow(QMainWindow):
         """Xử lý đóng cửa sổ"""
         self.check_alt_timer.stop()
         self.auto_commit_timer.stop()
-        event.accept() 
+        event.accept()
