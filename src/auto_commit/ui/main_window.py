@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, 
                            QTableWidget, QTableWidgetItem, QLabel, QHeaderView,
-                           QApplication)
+                           QApplication, QHBoxLayout, QCheckBox, QSpinBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
@@ -8,53 +8,142 @@ from datetime import datetime
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super().__init__()
-        self.app = app 
-        self.setup_ui()  
-        self.alt_press_time = None
+        self.app = app
+        self.auto_commit = False  # Mặc định tắt auto commit
+        self.commit_delay = 30  # Delay mặc định 30 giây
         self.changes_to_commit = []
-        self.commit_timer = QTimer()
-        self.commit_timer.timeout.connect(self.check_alt_press)
-        self.commit_timer.start(100)  # Kiểm tra mỗi 100ms
+        self.alt_press_time = None
+        self.setup_ui()
 
-    def keyPressEvent(self, event: QKeyEvent):
-        """Xử lý sự kiện nhấn phím"""
-        if event.key() == Qt.Key.Key_Alt:
-            if not self.alt_press_time:
-                self.alt_press_time = datetime.now()
-        super().keyPressEvent(event)
+    def setup_ui(self):
+        """Thiết lập giao diện"""
+        self.setWindowTitle("Auto Commit")
+        self.setMinimumSize(800, 600)
+        
+        # Widget chính
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        
+        # Tiêu đề
+        title = QLabel("Auto Commit")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #3daee9;")
+        layout.addWidget(title)
 
-    def keyReleaseEvent(self, event: QKeyEvent):
-        """Xử lý sự kiện thả phím"""
-        if event.key() == Qt.Key.Key_Alt:
-            self.alt_press_time = None
-        super().keyReleaseEvent(event)
+        # Settings panel
+        settings_panel = QWidget()
+        settings_layout = QVBoxLayout(settings_panel)
+        settings_panel.setStyleSheet("""
+            QWidget {
+                background-color: #333333;
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QLabel {
+                color: white;
+            }
+            QCheckBox {
+                color: white;
+            }
+            QSpinBox {
+                background-color: #444444;
+                color: white;
+                border: 1px solid #555555;
+                padding: 5px;
+            }
+        """)
 
-    def check_alt_press(self):
-        """Kiểm tra thời gian nhấn giữ Alt"""
-        if self.alt_press_time:
-            duration = (datetime.now() - self.alt_press_time).total_seconds()
-            if duration >= 1.0:  # Nếu nhấn giữ >= 1 giây
-                self.commit_changes()
-                self.alt_press_time = None
+        # Auto commit settings
+        auto_commit_layout = QHBoxLayout()
+        self.auto_commit_checkbox = QCheckBox("Auto Commit")
+        self.auto_commit_checkbox.setChecked(self.auto_commit)
+        self.auto_commit_checkbox.stateChanged.connect(self.toggle_auto_commit)
+        auto_commit_layout.addWidget(self.auto_commit_checkbox)
+
+        # Commit delay settings
+        delay_label = QLabel("Commit Delay (seconds):")
+        self.delay_spinbox = QSpinBox()
+        self.delay_spinbox.setRange(1, 3600)
+        self.delay_spinbox.setValue(self.commit_delay)
+        self.delay_spinbox.valueChanged.connect(self.change_commit_delay)
+        auto_commit_layout.addWidget(delay_label)
+        auto_commit_layout.addWidget(self.delay_spinbox)
+        
+        settings_layout.addLayout(auto_commit_layout)
+        
+        # Manual commit help
+        manual_commit_label = QLabel("Hold Alt for 1 second to commit manually")
+        manual_commit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        manual_commit_label.setStyleSheet("color: #888888; font-size: 12px;")
+        settings_layout.addWidget(manual_commit_label)
+        
+        layout.addWidget(settings_panel)
+
+        # Status
+        self.status = QLabel("Status: Idle")
+        self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status)
+
+        # Start/Stop button
+        self.start_btn = QPushButton("Start Watching")
+        self.start_btn.clicked.connect(self.start_watching)
+        layout.addWidget(self.start_btn)
+
+        # Table
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.verticalHeader().setVisible(False)
+        layout.addWidget(self.table)
+
+        # Timers
+        self.check_alt_timer = QTimer()
+        self.check_alt_timer.timeout.connect(self.check_alt_press)
+        self.check_alt_timer.start(100)
+
+        self.auto_commit_timer = QTimer()
+        self.auto_commit_timer.timeout.connect(self.auto_commit_changes)
+
+    def toggle_auto_commit(self, state):
+        """Bật/tắt auto commit"""
+        self.auto_commit = bool(state)
+        if self.auto_commit:
+            self.auto_commit_timer.start(self.commit_delay * 1000)
+            self.status.setText("Status: Auto Commit Enabled")
+        else:
+            self.auto_commit_timer.stop()
+            self.status.setText("Status: Manual Commit Mode")
+
+    def change_commit_delay(self, value):
+        """Thay đổi thời gian delay commit"""
+        self.commit_delay = value
+        if self.auto_commit:
+            self.auto_commit_timer.setInterval(value * 1000)
+
+    def auto_commit_changes(self):
+        """Tự động commit theo timer"""
+        if self.auto_commit and self.changes_to_commit:
+            self.commit_changes()
 
     def commit_changes(self):
         """Thực hiện commit các thay đổi"""
         if self.changes_to_commit:
             self.status.setText("Status: Committing changes...")
-            self.status.setStyleSheet("color: #f1c40f")  # Màu vàng
             
-            # Thực hiện commit
             for change in self.changes_to_commit:
                 self.add_change(change['file'], change['type'], "committed")
             
-            # Xóa danh sách thay đổi đã commit
             self.changes_to_commit.clear()
-            
             self.status.setText("Status: Changes committed")
-            self.status.setStyleSheet("color: #2ecc71")  # Màu xanh
 
     def add_change(self, file_path: str, change_type: str, status: str = "pending"):
-        """Thêm thay đổi vào bảng và danh sách chờ commit"""
+        """Thêm thay đổi vào bảng"""
         if status == "pending":
             self.changes_to_commit.append({
                 'file': file_path,
@@ -64,163 +153,56 @@ class MainWindow(QMainWindow):
         row = self.table.rowCount()
         self.table.insertRow(row)
 
-        # Thời gian
-        time_item = QTableWidgetItem(datetime.now().strftime("%H:%M:%S"))
-        time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Loại thay đổi
-        type_item = QTableWidgetItem(change_type)
-        type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Tên file
-        file_item = QTableWidgetItem(str(file_path))
-        
-        # Status
-        status_item = QTableWidgetItem(status)
-        status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Màu sắc theo loại thay đổi
-        color = {
-            "CREATED": QColor("#2ecc71"),
-            "MODIFIED": QColor("#f1c40f"),
-            "DELETED": QColor("#e74c3c")
-        }.get(change_type, QColor("#ffffff"))
-        
-        type_item.setForeground(color)
+        items = [
+            (datetime.now().strftime("%H:%M:%S"), Qt.AlignmentFlag.AlignCenter),
+            (change_type, Qt.AlignmentFlag.AlignCenter),
+            (str(file_path), Qt.AlignmentFlag.AlignLeft),
+            (status, Qt.AlignmentFlag.AlignCenter)
+        ]
 
-        # Thêm vào bảng
-        self.table.setItem(row, 0, time_item)
-        self.table.setItem(row, 1, type_item)
-        self.table.setItem(row, 2, file_item)
-        self.table.setItem(row, 3, status_item)
-        
-        # Cuộn xuống dòng mới nhất
+        for col, (text, alignment) in enumerate(items):
+            item = QTableWidgetItem(text)
+            item.setTextAlignment(alignment)
+            
+            if col == 1:  # Type column
+                color = {
+                    "CREATED": QColor("#2ecc71"),
+                    "MODIFIED": QColor("#f1c40f"),
+                    "DELETED": QColor("#e74c3c")
+                }.get(change_type, QColor("#ffffff"))
+                item.setForeground(color)
+                
+            self.table.setItem(row, col, item)
+
         self.table.scrollToBottom()
 
         # Giới hạn số dòng
-        MAX_ROWS = 1000
-        while self.table.rowCount() > MAX_ROWS:
+        while self.table.rowCount() > 1000:
             self.table.removeRow(0)
 
-    def setup_ui(self):
-        """Thiết lập giao diện"""
-        # Cấu hình cửa sổ
-        self.setWindowTitle("Auto Commit")
-        self.setMinimumSize(800, 600)
-        self.setStyleSheet("""
-            QMainWindow, QWidget {
-                background-color: #2b2b2b;
-            }
-            QLabel {
-                color: #ffffff;
-                font-size: 16px;
-                padding: 10px;
-            }
-            QPushButton {
-                background-color: #3daee9;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                font-size: 14px;
-                min-width: 120px;
-                margin: 5px;
-            }
-            QPushButton:hover {
-                background-color: #4dc4ff;
-            }
-            QPushButton:disabled {
-                background-color: #666666;
-            }
-            QTableWidget {
-                background-color: #333333;
-                color: #ffffff;
-                gridline-color: #444444;
-                border: none;
-            }
-            QTableWidget::item {
-                padding: 5px;
-            }
-            QHeaderView::section {
-                background-color: #2b2b2b;
-                color: #ffffff;
-                padding: 5px;
-                border: none;
-            }
-        """)
+    def check_alt_press(self):
+        """Kiểm tra phím Alt"""
+        if self.alt_press_time:
+            duration = (datetime.now() - self.alt_press_time).total_seconds()
+            if duration >= 1.0:
+                self.commit_changes()
+                self.alt_press_time = None
 
-        # Widget chính
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
+    def keyPressEvent(self, event: QKeyEvent):
+        """Xử lý nhấn phím"""
+        if event.key() == Qt.Key.Key_Alt and not self.auto_commit:
+            if not self.alt_press_time:
+                self.alt_press_time = datetime.now()
+        super().keyPressEvent(event)
 
-        # Tiêu đề
-        title = QLabel("Auto Commit")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 24px; color: #3daee9; font-weight: bold;")
-        layout.addWidget(title)
-
-        # Trạng thái
-        self.status = QLabel("Status: Idle")
-        self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status)
-
-        # Nút điều khiển
-        self.start_btn = QPushButton("Start Watching")
-        self.start_btn.clicked.connect(self.start_watching)
-        layout.addWidget(self.start_btn)
-
-        # Bảng theo dõi
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
-        
-        # Cấu hình bảng
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        
-        self.table.verticalHeader().setVisible(False)
-        layout.addWidget(self.table)
-
-        # Timer cập nhật
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_table)
-        self.is_watching = False
-
-        # Thêm hướng dẫn
-        help_label = QLabel("Hold Alt for 1 second to commit changes")
-        help_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        help_label.setStyleSheet("color: #888888; font-size: 12px;")
-        layout.addWidget(help_label)
-
-    def start_watching(self):
-        """Bắt đầu/dừng theo dõi"""
-        if not self.is_watching:
-            self.is_watching = True
-            self.start_btn.setText("Stop Watching")
-            self.status.setText("Status: Watching")
-            self.status.setStyleSheet("color: #2ecc71")
-            self.timer.start(1000)
-        else:
-            self.is_watching = False
-            self.start_btn.setText("Start Watching")
-            self.status.setText("Status: Stopped")
-            self.status.setStyleSheet("color: #e74c3c")
-            self.timer.stop()
-
-    def update_table(self):
-        """Cập nhật bảng"""
-        try:
-            QApplication.processEvents()
-        except Exception as e:
-            print(f"Error updating: {e}")
+    def keyReleaseEvent(self, event: QKeyEvent):
+        """Xử lý thả phím"""
+        if event.key() == Qt.Key.Key_Alt:
+            self.alt_press_time = None
+        super().keyReleaseEvent(event)
 
     def closeEvent(self, event):
         """Xử lý đóng cửa sổ"""
-        if self.timer.isActive():
-            self.timer.stop()
+        self.check_alt_timer.stop()
+        self.auto_commit_timer.stop()
         event.accept() 
