@@ -133,9 +133,9 @@ class MainWindow(QMainWindow):
 
         # Commit All Button
         self.commit_all_btn = QPushButton("Commit All")
-        self.commit_all_btn.setObjectName("commit-all")
-        self.commit_all_btn.clicked.connect(self.on_commit_button_clicked)
-        controls.addWidget(self.commit_all_btn)
+        self.commit_all_btn.setObjectName("commit-all") 
+        self.commit_all_btn.clicked.connect(self.on_commit_button_clicked)   
+        controls.addWidget(self.commit_all_btn)   
 
         header_layout.addLayout(controls)
         header_layout.addStretch()
@@ -169,81 +169,129 @@ class MainWindow(QMainWindow):
             self.delay_input.setText(f"{self.commit_delay}s")
 
     def setup_ui(self):
-        """Thiết lập giao diện chính"""
-        self.setMinimumSize(800, 600)
+        """Thiết lập giao diện người dùng"""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
         
-        # Widget chính
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(10)
-
-        # Thêm header
+        # Setup header
         self.setup_header(layout)
-
+        
         # Status bar
-        status_bar = QWidget()
-        status_bar.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 4px;
-                padding: 8px;
-            }
+        self.status = QLabel("Status: No changes to commit")
+        self.status.setStyleSheet("""
             QLabel {
-                color: #ffffff;
-                font-size: 14px;
+                background-color: #2d2d2d;
+                color: white;
+                padding: 8px;
+                border-radius: 4px;
             }
         """)
+        layout.addWidget(self.status)
         
-        status_layout = QHBoxLayout(status_bar)
-        status_layout.setContentsMargins(10, 0, 10, 0)
+        # Table widget
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: #1e1e1e;
+                color: white;
+                gridline-color: #2d2d2d;
+                border: none;
+            }
+            QHeaderView::section {
+                background-color: #2d2d2d;
+                color: white;
+                padding: 5px;
+                border: none;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+        """)
+        layout.addWidget(self.table)
         
-        self.status = QLabel("Status: Idle")
-        status_layout.addWidget(self.status)
-        status_layout.addStretch()
-        
-        self.start_btn = QPushButton("Start Watching")
-        self.start_btn.setStyleSheet("""
+        # Start Watching button
+        self.watch_btn = QPushButton("Start Watching")
+        self.watch_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2ecc71;
+                background-color: #27ae60;
                 color: white;
                 border: none;
-                padding: 8px 20px;
+                padding: 8px 15px;
                 border-radius: 4px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #27ae60;
+                background-color: #2ecc71;
             }
             QPushButton[watching="true"] {
-                background-color: #e74c3c;
-            }
-            QPushButton[watching="true"]:hover {
                 background-color: #c0392b;
             }
+            QPushButton[watching="true"]:hover {
+                background-color: #e74c3c;
+            }
         """)
-        self.start_btn.clicked.connect(self.start_watching)
-        status_layout.addWidget(self.start_btn)
-        
-        layout.addWidget(status_bar)
+        self.watch_btn.clicked.connect(self.toggle_watching)
+        layout.addWidget(self.watch_btn)
 
-        # Table setup giữ nguyên như cũ
-        self.setup_table(layout)
+    def toggle_watching(self):
+        """Toggle watching status"""
+        if not self.is_watching:
+            self.start_watching()
+            self.watch_btn.setText("Stop Watching")
+            self.watch_btn.setProperty("watching", True)
+        else:
+            self.stop_watching()
+            self.watch_btn.setText("Start Watching")
+            self.watch_btn.setProperty("watching", False)
+        
+        self.watch_btn.style().unpolish(self.watch_btn)
+        self.watch_btn.style().polish(self.watch_btn)
 
     def start_watching(self):
         """Bắt đầu theo dõi thay đổi"""
-        if not self.is_watching:
+        try:
+            import os
+            
+            # Lấy thư mục hiện tại
+            current_dir = os.getcwd()
+            
+            # Thêm thư mục vào watcher
+            self.watcher.addPath(current_dir)
+            
+            # Thêm tất cả các file trong thư mục
+            for root, _, files in os.walk(current_dir):
+                if '.git' in root:  # Bỏ qua thư mục .git
+                    continue
+                    
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    if not self._should_ignore_file(Path(file_path)):
+                        self.watcher.addPath(file_path)
+            
             self.is_watching = True
             self.status.setText("Status: Watching for changes...")
-            # Thêm logic theo dõi thư mục ở đây
+            
+        except Exception as e:
+            self.status.setText(f"Error starting watch: {str(e)}")
+            print(f"Watch error: {str(e)}")
 
     def stop_watching(self):
         """Dừng theo dõi thay đổi"""
-        if self.is_watching:
+        try:
+            # Xóa tất cả paths đang theo dõi
+            self.watcher.removePaths(self.watcher.files())
+            self.watcher.removePaths(self.watcher.directories())
+            
             self.is_watching = False
             self.status.setText("Status: Watching stopped")
-            # Thêm logic dừng theo dõi ở đây
+            
+        except Exception as e:
+            self.status.setText(f"Error stopping watch: {str(e)}")
+            print(f"Stop watch error: {str(e)}")
 
     def toggle_auto_commit(self):
         """Toggle chế độ auto commit"""
@@ -274,7 +322,7 @@ class MainWindow(QMainWindow):
             self.auto_commit_timer.setInterval(value * 1000)
 
     def auto_commit_changes(self):
-        """T�� động commit theo timer"""
+        """Tự động commit theo timer"""
         if self.auto_commit and self.changes_to_commit:
             self.commit_changes()
 
@@ -349,7 +397,7 @@ class MainWindow(QMainWindow):
         }
         
         for file_path, change_type in changes:
-            # Ki���m tra breaking changes
+            # Kiểm tra breaking changes
             if change_type == 'DELETED':
                 impact['breaking'] = True
             
