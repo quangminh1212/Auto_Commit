@@ -337,7 +337,7 @@ class CommitAnalyzer:
 
     def _analyze_detailed_changes(self, files: List[Path], types: List[str], 
                                 analysis: Dict) -> List[str]:
-        """Ph��n tích chi tiết từng thay đổi"""
+        """Phân tích chi tiết từng thay đổi"""
         changes = []
         for file, change_type in zip(files, types):
             action = {
@@ -565,65 +565,158 @@ class CommitMessageBuilder:
 
         return '\n'.join(message)
 
-    def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
-        """Phân tích các thay đổi và tạo CommitDetails"""
+    def analyze_git_changes(self) -> CommitDetails:
+        """Phân tích thay đổi từ git và tạo commit message thông minh"""
         try:
-            if not changes:  # Kiểm tra danh sách changes có rỗng không
+            import subprocess
+            
+            # Lấy danh sách các file thay đổi
+            status_output = subprocess.run(
+                ['git', 'status', '--porcelain'],
+                capture_output=True,
+                text=True,
+                check=True
+            ).stdout.strip()
+            
+            if not status_output:
                 return CommitDetails(
-                    subject="update files",
-                    changes=["No detailed changes available"]
+                    subject="no changes detected",
+                    changes=["No changes to commit"]
+                )
+            
+            changes = []
+            for line in status_output.split('\n'):
+                status = line[:2]
+                file_path = line[3:]
+                
+                # Chuyển đổi git status sang loại thay đổi
+                change_type = {
+                    'A ': 'CREATED',
+                    'M ': 'MODIFIED',
+                    'D ': 'DELETED',
+                    '??': 'CREATED',
+                    'R ': 'RENAMED'
+                }.get(status, 'MODIFIED')
+                
+                changes.append((file_path, change_type))
+            
+            # Lấy diff cho mỗi file để phân tích sâu hơn
+            detailed_analysis = {}
+            for file_path, _ in changes:
+                try:
+                    if file_path.strip():
+                        diff_output = subprocess.run(
+                            ['git', 'diff', '--', file_path],
+                            capture_output=True,
+                            text=True,
+                            check=True
+                        ).stdout
+                        
+                        # Phân tích diff
+                        analysis = self._analyze_diff(diff_output)
+                        detailed_analysis[file_path] = analysis
+                except Exception as e:
+                    print(f"Error analyzing diff for {file_path}: {e}")
+            
+            return self.analyze_changes(changes, detailed_analysis)
+            
+        except Exception as e:
+            print(f"Error analyzing git changes: {e}")
+            return CommitDetails(
+                subject="update files",
+                changes=["Error analyzing git changes"]
+            )
+
+    def _analyze_diff(self, diff_output: str) -> dict:
+        """Phân tích nội dung diff để hiểu ý nghĩa thay đổi"""
+        analysis = {
+            'additions': 0,
+            'deletions': 0,
+            'modifications': 0,
+            'semantic_changes': [],
+            'important_changes': []
+        }
+        
+        # Đếm số lượng thay đổi
+        for line in diff_output.split('\n'):
+            if line.startswith('+') and not line.startswith('+++'):
+                analysis['additions'] += 1
+            elif line.startswith('-') and not line.startswith('---'):
+                analysis['deletions'] += 1
+        
+        # Phân tích semantic
+        if 'function' in diff_output or 'def ' in diff_output:
+            analysis['semantic_changes'].append('function changes')
+        if 'class' in diff_output:
+            analysis['semantic_changes'].append('class changes')
+        if 'import' in diff_output:
+            analysis['semantic_changes'].append('dependency changes')
+            
+        # Phát hiện thay đổi quan trọng
+        important_patterns = [
+            (r'password|secret|key', 'security sensitive changes'),
+            (r'api|endpoint|route', 'API changes'),
+            (r'database|model|migration', 'database changes'),
+            (r'bug|fix|issue|error', 'bug fixes'),
+            (r'feature|feat|add|new', 'new features')
+        ]
+        
+        for pattern, change_type in important_patterns:
+            if re.search(pattern, diff_output, re.I):
+                analysis['important_changes'].append(change_type)
+        
+        return analysis
+
+    def analyze_changes(self, changes: List[tuple], detailed_analysis: Dict = None) -> CommitDetails:
+        """Phân tích các thay đổi với thông tin chi tiết từ git diff"""
+        try:
+            if not changes:
+                return CommitDetails(
+                    subject="no changes to commit",
+                    changes=["No changes detected"]
                 )
 
-            files = [Path(str(f)) for f, _ in changes]  # Convert to Path objects safely
-            types = [str(t) for t in (t for _, t in changes)]  # Ensure types are strings
+            files = [Path(str(f)) for f, _ in changes]
+            types = [str(t) for t in (t for _, t in changes)]
 
-            # Phân tích cơ bản
-            commit_type = self._determine_type(files, types) or 'chore'
-            scope = self._determine_scope(files) or ''
-            subject = self._create_subject(files, types) or 'update files'
+            # Xác định loại commit từ detailed_analysis
+            commit_type = self._determine_type_from_analysis(detailed_analysis) if detailed_analysis else self._determine_type(files, types)
             
-            # Tạo chi tiết changes với kiểm tra None
+            # Tạo subject thông minh hơn dựa trên phân tích
+            subject = self._create_smart_subject(files, types, detailed_analysis)
+            
+            # Tạo chi tiết changes với thông tin từ diff
             detailed_changes = []
-            for f, t in changes:
-                try:
-                    action = self._get_action_verb(t)
-                    detailed_changes.append(f"{action} {f}")
-                except Exception as e:
-                    print(f"Error processing change {f}: {e}")
-                    detailed_changes.append(f"Update {f}")
+            for file_path, change_type in changes:
+                if detailed_analysis and file_path in detailed_analysis:
+                    analysis = detailed_analysis[file_path]
+                    details = []
+                    if analysis['additions'] > 0:
+                        details.append(f"+{analysis['additions']}")
+                    if analysis['deletions'] > 0:
+                        details.append(f"-{analysis['deletions']}")
+                    if analysis['semantic_changes']:
+                        details.extend(analysis['semantic_changes'])
+                    
+                    change_desc = f"{self._get_action_verb(change_type)} {file_path}"
+                    if details:
+                        change_desc += f" ({', '.join(details)})"
+                    detailed_changes.append(change_desc)
+                else:
+                    detailed_changes.append(f"{self._get_action_verb(change_type)} {file_path}")
 
-            # Phân tích impacts với xử lý ngoại lệ
-            try:
-                impacts = self._analyze_impacts(files, types)
-            except Exception as e:
-                print(f"Error analyzing impacts: {e}")
-                impacts = []
-
-            # Tạo notes với xử lý ngoại lệ
-            try:
-                notes = self._create_notes(files)
-            except Exception as e:
-                print(f"Error creating notes: {e}")
-                notes = []
-
-            # Kiểm tra breaking changes
-            breaking = any('api' in str(f).lower() or 'interface' in str(f).lower() 
-                         for f in files)
-
-            # Tạo và trả về CommitDetails với các giá trị mặc định
             return CommitDetails(
                 type=commit_type,
-                scope=scope,
+                scope=self._determine_scope(files),
                 subject=subject,
-                changes=detailed_changes or ["Update files"],
-                impacts=impacts or [],
-                notes=notes or [],
-                breaking=breaking
+                changes=detailed_changes,
+                impacts=self._analyze_impacts_from_diff(detailed_analysis) if detailed_analysis else [],
+                notes=self._create_notes_from_diff(detailed_analysis) if detailed_analysis else [],
+                breaking=self._check_breaking_changes(detailed_analysis) if detailed_analysis else False
             )
 
         except Exception as e:
             print(f"Error in analyze_changes: {e}")
-            # Trả về CommitDetails mặc định thay vì None
             return CommitDetails(
                 subject="update files",
                 changes=["Error analyzing changes"]
