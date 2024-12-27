@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
         self.is_watching = False
         self.commit_analyzer = CommitAnalyzer()
 
-        # Khởi tạo UI và timers
+        # Khởi tạo UI và timers 
         self.setup_ui()
         self.init_timers()
 
