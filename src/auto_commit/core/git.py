@@ -341,12 +341,12 @@ class CommitAnalyzer:
         changes = []
         for file, change_type in zip(files, types):
             action = {
-                'CREATED': 'Add',
+                'CREATED': 'Add',  
                 'MODIFIED': 'Update',
                 'DELETED': 'Remove'
             }[change_type]
             
-            # Thêm context
+            # Thêm context 
             context = []
             file_str = str(file).lower()
             
