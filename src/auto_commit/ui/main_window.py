@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton,
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
-from auto_commit.core.git import CommitAnalyzer, ChangeType
+from auto_commit.core.git import CommitAnalyzer, ChangeType, CommitMessageBuilder
 from pathlib import Path
 
 class MainWindow(QMainWindow):
@@ -253,36 +253,23 @@ class MainWindow(QMainWindow):
         try:
             self.status.setText("Status: Analyzing changes...")
             
-            # Phân nhóm thay đổi theo loại file
-            changes_by_type = {}
+            # Tạo commit message builder
+            builder = CommitMessageBuilder()
+            
+            # Phân tích changes
+            changes = [(c['file'], c['type']) for c in self.changes_to_commit]
+            details = builder.analyze_changes(changes)
+            
+            # Tạo commit message
+            message = builder.build_message(details)
+            
+            # Hiển thị trong bảng
+            self._add_commit_entry(message)
+            
+            # Cập nhật status
             for change in self.changes_to_commit:
-                file_path = change['file']
-                change_type = change['type']
-                
-                # Phân tích extension và loại file
-                ext = Path(file_path).suffix.lower()
-                category = self._get_file_category(file_path, ext)
-                
-                if category not in changes_by_type:
-                    changes_by_type[category] = []
-                changes_by_type[category].append((file_path, change_type))
-
-            # Tạo commit message chi tiết cho từng nhóm
-            for category, changes in changes_by_type.items():
-                # Phân tích impact của thay đổi
-                impact = self._analyze_changes_impact(changes)
-                
-                # Tạo commit message
-                message = self._generate_detailed_commit_message(category, changes, impact)
-                
-                # Hiển thị commit message trong bảng
-                self._add_commit_entry(message, changes)
-                
-                # Cập nhật status các file đã commit
-                for file_path, _ in changes:
-                    self._update_file_status(file_path, "committed")
-
-            # Clear changes và cập nhật UI
+                self._update_file_status(change['file'], "committed")
+            
             self.changes_to_commit.clear()
             self.status.setText("Status: Changes committed successfully")
             
@@ -317,7 +304,7 @@ class MainWindow(QMainWindow):
         return 'other'
 
     def _analyze_changes_impact(self, changes: list) -> dict:
-        """Phân tích mức độ ảnh hưởng của các thay đổi"""
+        """Phân tích mức độ ảnh hư��ng của các thay đổi"""
         impact = {
             'breaking': False,
             'scope': set(),
