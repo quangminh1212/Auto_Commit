@@ -77,13 +77,13 @@ class CommitAnalyzer:
         }
 
     def add_change(self, file_path: str, change_type: ChangeType) -> None:
-        
+
         """Thêm một thay đổi mới để phân tích"""
         path = Path(file_path)
         category = self._get_file_category(str(path))
         
         change = FileChange(
-            path=path,
+            path=path,  
             type=change_type,
             time=datetime.now(),
             extension=path.suffix.lower(),
