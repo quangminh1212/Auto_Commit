@@ -242,7 +242,14 @@ class MainWindow(QMainWindow):
             self.status.setText("Status: Auto commit enabled")
         else:
             self.auto_commit_timer.stop()
-            self.status.setText("Status: Auto commit disabled")
+            self.status.setText("Status: Auto commit disabled (Manual commit available)")
+            
+        # Cập nhật trạng thái nút Commit All
+        self.commit_all_btn.setEnabled(True)
+        self.commit_all_btn.setToolTip(
+            "Click to commit all changes immediately" if not self.auto_commit
+            else "Auto commit is ON - Manual commit still available"
+        )
 
     def change_commit_delay(self, value):
         """Thay đổi thời gian delay commit"""
@@ -314,7 +321,7 @@ class MainWindow(QMainWindow):
         return 'other'
 
     def _analyze_changes_impact(self, changes: list) -> dict:
-        """Phân tích mức độ ��nh hưởng của các thay đổi"""
+        """Phân tích mức độ ảnh hưởng của các thay đổi"""
         impact = {
             'breaking': False,
             'scope': set(),
@@ -434,19 +441,31 @@ class MainWindow(QMainWindow):
 
         return message
 
-    def _add_commit_entry(self, message: str, changes: list):
-        """Thêm commit message vào bảng"""
+    def _add_commit_entry(self, message: str, highlight: bool = False):
+        """Thêm commit entry vào bảng với tùy chọn highlight"""
         row = self.table.rowCount()
         self.table.insertRow(row)
         
+        # Time column
         time_item = QTableWidgetItem(datetime.now().strftime("%H:%M:%S"))
         time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         
+        # Type column với highlight nếu là manual commit
         type_item = QTableWidgetItem("COMMIT")
         type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        type_item.setForeground(QColor("#2ecc71"))
+        if highlight:
+            type_item.setForeground(QColor("#e74c3c"))  # Đỏ cho manual commit
+            type_item.setToolTip("Manual commit")
+        else:
+            type_item.setForeground(QColor("#2ecc71"))  # Xanh cho auto commit
+            type_item.setToolTip("Auto commit")
         
+        # Message column
         message_item = QTableWidgetItem(message)
+        if highlight:
+            message_item.setBackground(QColor("#2d2d2d"))
+        
+        # Status column
         status_item = QTableWidgetItem("committed")
         status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         
@@ -505,12 +524,17 @@ class MainWindow(QMainWindow):
             self.table.removeRow(0)
 
     def check_alt_press(self):
-        """Kiểm tra phím Alt"""
-        if self.alt_press_time:
-            duration = (datetime.now() - self.alt_press_time).total_seconds()
-            if duration >= 1.0:
-                self.commit_changes()
-                self.alt_press_time = None
+        """Kiểm tra phím Alt để commit thủ công"""
+        if not self.alt_press_time:
+            return
+            
+        # Tính thời gian giữ phím Alt
+        duration = (datetime.now() - self.alt_press_time).total_seconds()
+        
+        # Nếu giữ đủ 1 giây và có thay đổi, thực hiện commit
+        if duration >= 1 and self.changes_to_commit:
+            self.commit_all_changes()
+            self.alt_press_time = None
 
     def keyPressEvent(self, event: QKeyEvent):
         """Xử lý nhấn phím"""
@@ -603,8 +627,8 @@ class MainWindow(QMainWindow):
             # Tạo commit message
             message = builder.build_message(details)
             
-            # Hiển thị trong bảng
-            self._add_commit_entry(message)
+            # Hiển thị trong bảng với highlight
+            self._add_commit_entry(message, highlight=True)
             
             # Cập nhật status
             for change in self.changes_to_commit:
