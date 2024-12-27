@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 from datetime import datetime
 import re
 from dataclasses import dataclass
@@ -324,293 +324,177 @@ class CommitDetails:
     notes: List[str]
     breaking: bool = False
 
-class CommitMessageBuilder:
+class CommitAnalysis:
+    type: str
+    scope: str
+    subject: str
+    changes: List[str]
+    impacts: List[str]
+    notes: List[str]
+    breaking: bool
+    importance: str
+    affected_areas: Set[str]
+    technical_details: Dict[str, any]
+
+class SmartCommitBuilder:
     def __init__(self):
-        # Mở rộng patterns để nhận diện ý nghĩa thay đổi
-        self.semantic_patterns = {
-            # Feature patterns
+        self.change_patterns = {
             'feat': {
                 'patterns': [r'add', r'new', r'create', r'implement'],
-                'contexts': ['component', 'feature', 'function', 'api'],
-                'importance': 'major'
+                'importance': 'major',
+                'description': 'New feature or functionality'
             },
-            
-            # Bug fix patterns  
             'fix': {
-                'patterns': [r'fix', r'resolve', r'bug', r'issue', r'error'],
-                'contexts': ['crash', 'exception', 'invalid', 'incorrect'],
-                'importance': 'critical'
+                'patterns': [r'fix', r'resolve', r'bug', r'issue', r'error', r'crash'],
+                'importance': 'critical',
+                'description': 'Bug fix or error resolution'
             },
-            
-            # UI/UX patterns
-            'style': {
-                'patterns': [r'style', r'ui', r'ux', r'design', r'layout'],
-                'contexts': ['visual', 'interface', 'experience', 'responsive'],
-                'importance': 'minor'
-            },
-            
-            # Code quality patterns
             'refactor': {
-                'patterns': [r'refactor', r'restructure', r'optimize', r'clean'],
-                'contexts': ['performance', 'maintainability', 'readability'],
-                'importance': 'medium'
+                'patterns': [r'refactor', r'restructure', r'optimize', r'improve'],
+                'importance': 'medium',
+                'description': 'Code refactoring or optimization'
             },
-            
-            # Documentation patterns
+            'style': {
+                'patterns': [r'style', r'format', r'ui', r'design', r'css'],
+                'importance': 'minor',
+                'description': 'UI/UX or code style changes'
+            },
             'docs': {
-                'patterns': [r'doc', r'comment', r'guide', r'readme'],
-                'contexts': ['explanation', 'example', 'usage', 'api'],
-                'importance': 'minor'
+                'patterns': [r'doc', r'comment', r'readme', r'guide'],
+                'importance': 'minor',
+                'description': 'Documentation updates'
             }
         }
 
-        # Phân tích impact chi tiết hơn
-        self.impact_analysis = {
-            'breaking_changes': {
-                'patterns': [r'api', r'interface', r'contract', r'schema'],
-                'warning_level': 'high',
-                'requires_attention': True
-            },
-            'security': {
-                'patterns': [r'auth', r'security', r'crypto', r'password'],
-                'warning_level': 'critical',
-                'requires_review': True
-            },
-            'performance': {
-                'patterns': [r'optimize', r'performance', r'speed', r'memory'],
-                'warning_level': 'medium',
-                'needs_testing': True
-            },
-            'dependencies': {
-                'patterns': [r'dependency', r'package', r'version', r'upgrade'],
-                'warning_level': 'medium',
-                'needs_testing': True
-            }
+        self.technical_areas = {
+            'frontend': [r'\.vue', r'\.jsx?', r'\.tsx?', r'\.css', r'\.scss', r'\.html'],
+            'backend': [r'\.py', r'\.go', r'\.java', r'\.php', r'api', r'server'],
+            'database': [r'model', r'migration', r'schema', r'\.sql'],
+            'testing': [r'test', r'spec', r'mock', r'fixture'],
+            'config': [r'\.env', r'\.yml', r'\.json', r'config', r'setting'],
+            'security': [r'auth', r'security', r'crypto', r'password', r'token'],
+            'ci_cd': [r'github/workflows', r'gitlab-ci', r'jenkins', r'docker'],
+            'dependencies': [r'requirements\.txt', r'package\.json', r'go\.mod']
         }
 
-    def analyze_semantic_meaning(self, files: List[Path], changes: List[str]) -> Dict:
-        """Phân tích ý nghĩa ngữ nghĩa của thay đổi"""
-        content = ' '.join([str(f) for f in files] + changes).lower()
-        meanings = []
-        
-        for type_name, type_info in self.semantic_patterns.items():
-            if any(re.search(pattern, content) for pattern in type_info['patterns']):
-                if any(context in content for context in type_info['contexts']):
-                    meanings.append({
-                        'type': type_name,
-                        'importance': type_info['importance'],
-                        'contexts': [ctx for ctx in type_info['contexts'] if ctx in content]
-                    })
-        
-        return meanings
-
-    def analyze_detailed_impact(self, files: List[Path], changes: List[str]) -> Dict:
-        """Phân tích chi tiết tác động của thay đổi"""
-        content = ' '.join([str(f) for f in files] + changes).lower()
-        impacts = {}
-        
-        for impact_type, impact_info in self.impact_analysis.items():
-            if any(re.search(pattern, content) for pattern in impact_info['patterns']):
-                impacts[impact_type] = {
-                    'warning_level': impact_info['warning_level'],
-                    'requires_attention': impact_info.get('requires_attention', False),
-                    'requires_review': impact_info.get('requires_review', False),
-                    'needs_testing': impact_info.get('needs_testing', False)
-                }
-        
-        return impacts
-
-    def build_semantic_message(self, meanings: List[Dict], impacts: Dict) -> str:
-        """Tạo commit message với ý nghĩa ngữ nghĩa"""
-        if not meanings:
-            return "chore: routine changes"
-
-        # Lấy meaning quan trọng nhất
-        primary_meaning = max(meanings, key=lambda m: {
-            'critical': 3,
-            'major': 2,
-            'medium': 1,
-            'minor': 0
-        }[m['importance']])
-
-        # Tạo header
-        message = [f"{primary_meaning['type']}: "]
-        
-        # Thêm scope nếu có contexts
-        if primary_meaning['contexts']:
-            message[0] += f"({','.join(primary_meaning['contexts'])}) "
-
-        # Thêm mô tả ngắn gọn
-        message[0] += self._generate_description(primary_meaning, impacts)
-
-        # Thêm chi tiết impacts
-        if impacts:
-            message.extend(["", "Impact:"])
-            for impact_type, impact_info in impacts.items():
-                details = []
-                if impact_info['requires_attention']:
-                    details.append("requires attention")
-                if impact_info['requires_review']:
-                    details.append("needs security review")
-                if impact_info['needs_testing']:
-                    details.append("requires testing")
-                
-                message.append(f"- {impact_type.replace('_', ' ').title()}: "
-                             f"{', '.join(details)}")
-
-        return '\n'.join(message)
-
-    def _generate_description(self, meaning: Dict, impacts: Dict) -> str:
-        """Tạo mô tả có ý nghĩa dựa trên phân tích"""
-        desc = []
-        
-        # Thêm action từ type
-        action_map = {
-            'feat': 'add new',
-            'fix': 'resolve',
-            'style': 'improve',
-            'refactor': 'optimize',
-            'docs': 'update'
-        }
-        desc.append(action_map.get(meaning['type'], 'update'))
-
-        # Thêm contexts
-        if meaning['contexts']:
-            desc.append(' and '.join(meaning['contexts']))
-
-        # Thêm warning nếu có high-impact changes
-        if any(i['warning_level'] == 'critical' for i in impacts.values()):
-            desc.append("(CRITICAL)")
-        elif any(i['warning_level'] == 'high' for i in impacts.values()):
-            desc.append("(BREAKING)")
-
-        return ' '.join(desc) 
-
-    def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
-        """Phân tích các thay đổi và tạo commit details"""
-        # Tách files và types
+    def analyze_changes(self, changes: List[tuple]) -> CommitAnalysis:
+        """Phân tích sâu về các thay đổi để tạo commit thông minh"""
         files = [Path(f) for f, _ in changes]
         types = [t for _, t in changes]
         
-        # Phân tích ngữ nghĩa
-        meanings = self.analyze_semantic_meaning(files, types)
+        # Phân tích kỹ thuật
+        tech_analysis = self._analyze_technical_aspects(files, types)
+        
+        # Xác định loại thay đổi chính
+        commit_type = self._determine_primary_type(files, types)
+        
+        # Phân tích scope và affected areas
+        scope, areas = self._analyze_scope_and_areas(files)
+        
+        # Tạo subject line thông minh
+        subject = self._create_smart_subject(commit_type, files, types, tech_analysis)
+        
+        # Phân tích chi tiết changes
+        detailed_changes = self._analyze_detailed_changes(files, types, tech_analysis)
         
         # Phân tích impacts
-        impacts = self.analyze_detailed_impact(files, types)
+        impacts = self._analyze_impacts(tech_analysis)
         
-        # Xác định type và scope chính
-        if meanings:
-            primary_meaning = max(meanings, key=lambda m: {
-                'critical': 3, 'major': 2, 'medium': 1, 'minor': 0
-            }[m['importance']])
-            commit_type = primary_meaning['type']
-            scope = ','.join(primary_meaning['contexts']) if primary_meaning['contexts'] else ''
-        else:
-            commit_type = 'chore'
-            scope = ''
-
-        # Tạo subject
-        subject = self._create_subject(files, types)
+        # Tạo technical notes
+        notes = self._create_technical_notes(tech_analysis)
         
-        # Tạo danh sách changes
-        detailed_changes = [
-            f"{self._get_action_verb(t)} {f}" 
-            for f, t in changes
-        ]
-        
-        # Tạo danh sách impacts
-        impact_notes = []
-        for impact_type, impact_info in impacts.items():
-            details = []
-            if impact_info['requires_attention']:
-                details.append("requires attention")
-            if impact_info['requires_review']:
-                details.append("needs security review")
-            if impact_info['needs_testing']:
-                details.append("requires testing")
-            
-            if details:
-                impact_notes.append(
-                    f"{impact_type.replace('_', ' ').title()}: {', '.join(details)}"
-                )
-
-        # Tạo notes
-        notes = self._create_notes(files, types)
-        
-        # Kiểm tra breaking changes
-        breaking = any(
-            i['warning_level'] in ['critical', 'high'] 
-            for i in impacts.values()
-        )
-        
-        return CommitDetails(
+        return CommitAnalysis(
             type=commit_type,
             scope=scope,
             subject=subject,
             changes=detailed_changes,
-            impacts=impact_notes,
+            impacts=impacts,
             notes=notes,
-            breaking=breaking
+            breaking=tech_analysis['has_breaking_changes'],
+            importance=tech_analysis['importance'],
+            affected_areas=areas,
+            technical_details=tech_analysis
         )
 
-    def _get_action_verb(self, change_type: str) -> str:
-        """Trả về động từ mô tả hành động"""
-        return {
-            'CREATED': 'Add',
-            'MODIFIED': 'Update',
-            'DELETED': 'Remove'
-        }.get(change_type, 'Update')
+    def _analyze_technical_aspects(self, files: List[Path], types: List[str]) -> Dict:
+        """Phân tích chi tiết kỹ thuật của các thay đổi"""
+        analysis = {
+            'areas': set(),
+            'has_breaking_changes': False,
+            'importance': 'minor',
+            'complexity': 'low',
+            'risk_level': 'low',
+            'testing_required': False,
+            'review_priority': 'normal',
+            'dependencies_changed': False,
+            'security_impact': False,
+            'performance_impact': False,
+            'database_changes': False,
+            'api_changes': False
+        }
 
-    def _create_subject(self, files: List[Path], types: List[str]) -> str:
-        """Tạo subject line cho commit"""
-        if len(files) == 1:
-            action = self._get_action_verb(types[0])
-            return f"{action.lower()} {files[0].name}"
-        
-        categories = set(self._get_file_category(f) for f in files)
-        if len(categories) == 1:
-            category = next(iter(categories))
-            return f"update {len(files)} {category} files"
-        
-        return f"update {len(files)} files across {len(categories)} categories"
+        for file in files:
+            file_str = str(file).lower()
+            
+            # Phân tích technical areas
+            for area, patterns in self.technical_areas.items():
+                if any(re.search(pattern, file_str) for pattern in patterns):
+                    analysis['areas'].add(area)
 
-    def _get_file_category(self, file: Path) -> str:
-        """Xác định category của file"""
-        if 'test' in str(file).lower():
-            return 'test'
-        elif file.suffix in ['.py', '.js', '.ts']:
-            return 'source'
-        elif file.suffix in ['.css', '.scss', '.html']:
-            return 'ui'
-        elif file.suffix in ['.md', '.rst']:
-            return 'docs'
-        elif file.suffix in ['.json', '.yaml', '.yml']:
-            return 'config'
-        return 'other' 
+            # Phân tích mức độ quan trọng và rủi ro
+            if any(term in file_str for term in ['api', 'auth', 'security', 'core']):
+                analysis['importance'] = 'critical'
+                analysis['risk_level'] = 'high'
+                analysis['review_priority'] = 'high'
 
-    def _create_notes(self, files: List[Path], types: List[str]) -> List[str]:
-        """Tạo các ghi chú cho commit"""
-        notes = []
-        
-        # Kiểm tra dependencies
-        if any(f.name in ['requirements.txt', 'package.json', 'go.mod', 'pom.xml'] for f in files):
-            notes.append("Dependencies were modified - update required")
-            
-        # Kiểm tra database
-        if any('migration' in str(f) or 'model' in str(f) for f in files):
-            notes.append("Database changes detected - migration may be required")
-            
-        # Kiểm tra tests
-        if any('test' in str(f) for f in files):
-            notes.append("Test files modified - run test suite")
-            
-        # Kiểm tra security
-        if any(term in str(f).lower() for f in files 
-              for term in ['auth', 'security', 'password', 'crypto']):
-            notes.append("Security-related changes - review required")
-            
-        # Kiểm tra API
-        if any('api' in str(f).lower() for f in files):
-            notes.append("API changes detected - update documentation")
-            
-        return notes 
+            # Kiểm tra breaking changes
+            if 'DELETED' in types or any(term in file_str for term in ['api', 'interface', 'contract']):
+                analysis['has_breaking_changes'] = True
+
+            # Phân tích dependencies
+            if any(term in file_str for term in ['requirements.txt', 'package.json', 'go.mod']):
+                analysis['dependencies_changed'] = True
+
+            # Phân tích security
+            if any(term in file_str for term in ['auth', 'security', 'crypto', 'password']):
+                analysis['security_impact'] = True
+                analysis['review_priority'] = 'high'
+
+            # Phân tích database
+            if any(term in file_str for term in ['model', 'migration', 'schema']):
+                analysis['database_changes'] = True
+                analysis['testing_required'] = True
+
+        return analysis
+
+    def build_message(self, analysis: CommitAnalysis) -> str:
+        """Tạo commit message chi tiết và có ý nghĩa"""
+        # Header
+        message = [f"{analysis.type}"]
+        if analysis.scope:
+            message[0] += f"({analysis.scope})"
+        message[0] += f": {analysis.subject}"
+
+        # Changes section
+        if analysis.changes:
+            message.extend(["", "Changes:"])
+            message.extend(f"- {change}" for change in analysis.changes)
+
+        # Impact section
+        if analysis.impacts:
+            message.extend(["", "Impact:"])
+            message.extend(f"- {impact}" for impact in analysis.impacts)
+
+        # Technical notes
+        if analysis.notes:
+            message.extend(["", "Notes:"])
+            message.extend(f"- {note}" for note in analysis.notes)
+
+        # Breaking changes warning
+        if analysis.breaking:
+            message.extend([
+                "",
+                "BREAKING CHANGE: This commit includes breaking changes that require attention"
+            ])
+
+        return '\n'.join(message) 
