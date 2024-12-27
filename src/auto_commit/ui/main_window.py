@@ -13,11 +13,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Auto Commit")
         
-        # Khởi tạo các biến trước khi setup UI
+        # Khởi tạo các biến trước khi setup UI 
         self.auto_commit = False
         self.commit_delay = 30
         self.changes_to_commit = []
-        self.alt_press_time = None
+        self.alt_press_time = None 
         self.is_watching = False  # Thêm thuộc tính is_watching
         
         # Khởi tạo các thành phần UI
@@ -128,7 +128,7 @@ class MainWindow(QMainWindow):
         # Commit All Button
         self.commit_all_btn = QPushButton("Commit All")
         self.commit_all_btn.setObjectName("commit-all")
-        self.commit_all_btn.clicked.connect(self.commit_all_changes)
+        self.commit_all_btn.clicked.connect(self.on_commit_button_clicked)
         controls.addWidget(self.commit_all_btn)
 
         header_layout.addLayout(controls)
@@ -618,16 +618,27 @@ class MainWindow(QMainWindow):
         # Thêm vào layout
         layout.addWidget(self.table)
 
+    def on_commit_button_clicked(self):
+        """Xử lý khi nhấn nút commit"""
+        try:
+            if not self.changes_to_commit:
+                self.status.setText("Status: No changes to commit")
+                return
+
+            self.status.setText("Status: Committing changes...")
+            self.commit_all_changes()
+            
+        except Exception as e:
+            self.status.setText(f"Error: {str(e)}")
+            print(f"Commit button error: {str(e)}")
+
     def commit_all_changes(self):
         """Commit tất cả thay đổi ngay lập tức"""
         if not self.changes_to_commit:
-            self.status.setText("Status: No changes to commit")
             return
             
         try:
-            self.status.setText("Status: Committing all changes...")
-            
-            # Sử dụng CommitMessageBuilder thay vì CommitAnalyzer
+            # Tạo commit message builder
             builder = CommitMessageBuilder()
             
             # Phân tích changes
@@ -637,19 +648,52 @@ class MainWindow(QMainWindow):
             # Tạo commit message
             message = builder.build_message(details)
             
+            # Thực hiện git commit
+            self._execute_git_commit(message)
+            
             # Hiển thị trong bảng với highlight
             self._add_commit_entry(message, highlight=True)
             
-            # Cập nhật status
+            # Cập nhật status cho từng file
             for change in self.changes_to_commit:
                 self._update_file_status(change['file'], "committed")
             
+            # Clear changes và cập nhật status
             self.changes_to_commit.clear()
-            self.status.setText("Status: All changes committed successfully")
+            self.status.setText("Status: Changes committed successfully")
             
         except Exception as e:
             self.status.setText(f"Error: {str(e)}")
             print(f"Commit error: {str(e)}")
+
+    def _execute_git_commit(self, message: str):
+        """Thực hiện git commit với message"""
+        import subprocess
+        import os
+        
+        try:
+            # Đảm bảo đang ở trong git repository
+            repo_path = os.getcwd()
+            
+            # Add tất cả changes
+            subprocess.run(['git', 'add', '.'], 
+                         cwd=repo_path, 
+                         check=True, 
+                         capture_output=True)
+            
+            # Thực hiện commit
+            result = subprocess.run(['git', 'commit', '-m', message],
+                                 cwd=repo_path,
+                                 check=True,
+                                 capture_output=True,
+                                 text=True)
+            
+            print("Git commit output:", result.stdout)
+            
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Git commit failed: {e.stderr}")
+        except Exception as e:
+            raise Exception(f"Git operation failed: {str(e)}")
 
     def on_file_changed(self, path: str):
         """Xử lý khi file thay đổi"""
