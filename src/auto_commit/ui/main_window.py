@@ -35,44 +35,49 @@ class MainWindow(QMainWindow):
         self.auto_commit_timer.timeout.connect(self.auto_commit_changes)
 
     def setup_header(self, layout):
-        """Thiết lập phần header với settings"""
+        """Thiết lập phần header với settings và controls"""
         header = QWidget()
         header.setStyleSheet("""
             QWidget {
                 background-color: #2d2d2d;
                 border-radius: 8px;
             }
-            QCheckBox {
-                color: #3daee9;
-                font-size: 14px;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-                border-radius: 3px;
-                border: 1px solid #3daee9;
-            }
-            QCheckBox::indicator:checked {
+            QPushButton {
                 background-color: #3daee9;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #43b8ff;
+            }
+            QPushButton:pressed {
+                background-color: #3498db;
+            }
+            QPushButton#commit-all {
+                background-color: #2ecc71;
+            }
+            QPushButton#commit-all:hover {
+                background-color: #27ae60;
+            }
+            QPushButton[toggled="true"] {
+                background-color: #e74c3c;
+            }
+            QPushButton[toggled="true"]:hover {
+                background-color: #c0392b;
             }
             QLabel {
-                color: #ffffff;
-                font-size: 14px;
+                color: white;
             }
             QLineEdit {
                 background-color: #363636;
                 color: #3daee9;
                 border: 1px solid #3daee9;
-                border-radius: 3px;
-                padding: 4px 8px;
-                min-width: 60px;
-                max-width: 80px;
-            }
-            .help-text {
-                color: #888888;
-                font-style: italic;
-                font-size: 12px;
+                border-radius: 4px;
+                padding: 5px;
             }
         """)
 
@@ -80,43 +85,43 @@ class MainWindow(QMainWindow):
         header_layout.setContentsMargins(10, 10, 10, 10)
         header_layout.setSpacing(15)
 
-        # Auto Commit checkbox
-        self.auto_commit_checkbox = QCheckBox("Auto Commit")
-        self.auto_commit_checkbox.setChecked(self.auto_commit)
-        self.auto_commit_checkbox.stateChanged.connect(self.toggle_auto_commit)
-        header_layout.addWidget(self.auto_commit_checkbox)
+        # Controls container
+        controls = QHBoxLayout()
+        controls.setSpacing(10)
+
+        # Auto Commit Toggle Button
+        self.auto_commit_btn = QPushButton("Auto Commit: OFF")
+        self.auto_commit_btn.setCheckable(True)
+        self.auto_commit_btn.clicked.connect(self.toggle_auto_commit)
+        controls.addWidget(self.auto_commit_btn)
 
         # Commit Delay
-        delay_label = QLabel("Commit Delay:")
-        header_layout.addWidget(delay_label)
-        
+        delay_container = QHBoxLayout()
+        delay_label = QLabel("Delay:")
         self.delay_input = QLineEdit()
         self.delay_input.setText(f"{self.commit_delay}s")
         self.delay_input.setFixedWidth(60)
         self.delay_input.textChanged.connect(self.on_delay_changed)
-        header_layout.addWidget(self.delay_input)
         
+        delay_container.addWidget(delay_label)
+        delay_container.addWidget(self.delay_input)
+        controls.addLayout(delay_container)
+
+        # Commit All Button
+        self.commit_all_btn = QPushButton("Commit All")
+        self.commit_all_btn.setObjectName("commit-all")
+        self.commit_all_btn.clicked.connect(self.commit_all_changes)
+        controls.addWidget(self.commit_all_btn)
+
+        header_layout.addLayout(controls)
         header_layout.addStretch()
 
-        # Help text ở dưới
-        help_container = QWidget()
-        help_layout = QVBoxLayout(help_container)
-        help_layout.setContentsMargins(0, 5, 0, 0)
-        
+        # Help text
         help_text = QLabel("Hold Alt for 1 second to commit manually")
-        help_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        help_text.setStyleSheet("color: #888888; font-style: italic; font-size: 12px;")
-        help_layout.addWidget(help_text)
+        help_text.setStyleSheet("color: #888888; font-style: italic;")
+        header_layout.addWidget(help_text)
 
-        # Tạo container chung
-        container = QWidget()
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(0)
-        container_layout.addWidget(header)
-        container_layout.addWidget(help_container)
-
-        layout.addWidget(container)
+        layout.addWidget(header)
 
     def on_delay_changed(self, text):
         """Xử lý khi thay đổi giá trị delay"""
@@ -224,15 +229,20 @@ class MainWindow(QMainWindow):
         if self.auto_commit_timer.isActive():
             self.auto_commit_timer.stop()
 
-    def toggle_auto_commit(self, state):
-        """Bật/tắt auto commit"""
-        self.auto_commit = bool(state)
-        if self.auto_commit and self.is_watching:
+    def toggle_auto_commit(self):
+        """Toggle chế độ auto commit"""
+        self.auto_commit = self.auto_commit_btn.isChecked()
+        self.auto_commit_btn.setText(f"Auto Commit: {'ON' if self.auto_commit else 'OFF'}")
+        self.auto_commit_btn.setProperty("toggled", self.auto_commit)
+        self.auto_commit_btn.style().unpolish(self.auto_commit_btn)
+        self.auto_commit_btn.style().polish(self.auto_commit_btn)
+        
+        if self.auto_commit:
             self.auto_commit_timer.start(self.commit_delay * 1000)
-            self.status.setText("Status: Auto Commit Enabled")
+            self.status.setText("Status: Auto commit enabled")
         else:
             self.auto_commit_timer.stop()
-            self.status.setText("Status: Manual Commit Mode")
+            self.status.setText("Status: Auto commit disabled")
 
     def change_commit_delay(self, value):
         """Thay đổi thời gian delay commit"""
@@ -304,7 +314,7 @@ class MainWindow(QMainWindow):
         return 'other'
 
     def _analyze_changes_impact(self, changes: list) -> dict:
-        """Phân tích mức độ ảnh hư��ng của các thay đổi"""
+        """Phân tích mức độ ��nh hưởng của các thay đổi"""
         impact = {
             'breaking': False,
             'scope': set(),
@@ -573,3 +583,36 @@ class MainWindow(QMainWindow):
         
         # Thêm vào layout
         layout.addWidget(self.table)
+
+    def commit_all_changes(self):
+        """Commit tất cả thay đổi ngay lập tức"""
+        if not self.changes_to_commit:
+            self.status.setText("Status: No changes to commit")
+            return
+            
+        try:
+            self.status.setText("Status: Committing all changes...")
+            
+            # Tạo commit message builder
+            builder = CommitMessageBuilder()
+            
+            # Phân tích changes
+            changes = [(c['file'], c['type']) for c in self.changes_to_commit]
+            details = builder.analyze_changes(changes)
+            
+            # Tạo commit message
+            message = builder.build_message(details)
+            
+            # Hiển thị trong bảng
+            self._add_commit_entry(message)
+            
+            # Cập nhật status
+            for change in self.changes_to_commit:
+                self._update_file_status(change['file'], "committed")
+            
+            self.changes_to_commit.clear()
+            self.status.setText("Status: All changes committed successfully")
+            
+        except Exception as e:
+            self.status.setText(f"Error: {str(e)}")
+            print(f"Commit error: {str(e)}")
