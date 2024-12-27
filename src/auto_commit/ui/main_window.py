@@ -10,12 +10,21 @@ class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super().__init__()
         self.app = app
-        self.auto_commit = False  # Mặc định tắt auto commit
-        self.commit_delay = 30  # Delay mặc định 30 giây
+        self.auto_commit = False
+        self.commit_delay = 30
         self.changes_to_commit = []
         self.alt_press_time = None
+        self.is_watching = False
         self.commit_analyzer = CommitAnalyzer()
         self.setup_ui()
+        
+        # Khởi tạo timers
+        self.check_alt_timer = QTimer()
+        self.check_alt_timer.timeout.connect(self.check_alt_press)
+        self.check_alt_timer.start(100)
+
+        self.auto_commit_timer = QTimer()
+        self.auto_commit_timer.timeout.connect(self.auto_commit_changes)
 
     def setup_ui(self):
         """Thiết lập giao diện"""
@@ -103,14 +112,6 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table.verticalHeader().setVisible(False)
         layout.addWidget(self.table)
-
-        # Timers
-        self.check_alt_timer = QTimer()
-        self.check_alt_timer.timeout.connect(self.check_alt_press)
-        self.check_alt_timer.start(100)
-
-        self.auto_commit_timer = QTimer()
-        self.auto_commit_timer.timeout.connect(self.auto_commit_changes)
 
     def toggle_auto_commit(self, state):
         """Bật/tắt auto commit"""
