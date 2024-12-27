@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton,
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
+from auto_commit.core.git import CommitAnalyzer, ChangeType
 
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
@@ -13,6 +14,7 @@ class MainWindow(QMainWindow):
         self.commit_delay = 30  # Delay mặc định 30 giây
         self.changes_to_commit = []
         self.alt_press_time = None
+        self.commit_analyzer = CommitAnalyzer()
         self.setup_ui()
 
     def setup_ui(self):
@@ -134,21 +136,35 @@ class MainWindow(QMainWindow):
     def commit_changes(self):
         """Thực hiện commit các thay đổi"""
         if self.changes_to_commit:
-            self.status.setText("Status: Committing changes...")
+            self.status.setText("Status: Analyzing changes...")
             
+            # Tạo commit messages thông minh
+            commit_messages = self.commit_analyzer.generate_commit_messages()
+            
+            # Hiển thị commit messages
+            for msg in commit_messages:
+                row = self.table.rowCount()
+                self.table.insertRow(row)
+                self.table.setItem(row, 0, QTableWidgetItem(datetime.now().strftime("%H:%M:%S")))
+                self.table.setItem(row, 1, QTableWidgetItem("COMMIT"))
+                self.table.setItem(row, 2, QTableWidgetItem(msg))
+                self.table.setItem(row, 3, QTableWidgetItem("committed"))
+            
+            # Cập nhật status các thay đổi
             for change in self.changes_to_commit:
                 self.add_change(change['file'], change['type'], "committed")
             
             self.changes_to_commit.clear()
+            self.commit_analyzer.clear()
             self.status.setText("Status: Changes committed")
 
     def add_change(self, file_path: str, change_type: str, status: str = "pending"):
         """Thêm thay đổi vào bảng"""
         if status == "pending":
-            self.changes_to_commit.append({
-                'file': file_path,
-                'type': change_type
-            })
+            self.commit_analyzer.add_change(
+                file_path, 
+                ChangeType(change_type.lower())
+            )
 
         row = self.table.rowCount()
         self.table.insertRow(row)
