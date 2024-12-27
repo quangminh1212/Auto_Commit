@@ -248,10 +248,10 @@ class CommitAnalyzer:
 
     def clear(self):
         """Xóa tất cả thay đổi đã phân tích"""
-        self.changes.clear() 
+        self.changes.clear()    
 
     def _determine_primary_type(self, files: List[Path], types: List[str]) -> str:
-        """Xác định loại commit chính dựa trên các thay đổi"""
+        """Xác định loại commit chính dựa trên các thay đổi"""   
         # Kết hợp tất cả nội dung để phân tích
         content = ' '.join([str(f) for f in files] + types).lower()
         
@@ -488,6 +488,7 @@ class CommitDetails:
 
 class CommitMessageBuilder:
     def __init__(self):
+        # Patterns cho phân tích commit
         self.change_patterns = {
             'feat': {
                 'patterns': [r'add', r'new', r'create', r'implement'],
@@ -495,7 +496,7 @@ class CommitMessageBuilder:
                 'description': 'New feature or functionality'
             },
             'fix': {
-                'patterns': [r'fix', r'resolve', r'bug', r'issue', r'error', r'crash'],
+                'patterns': [r'fix', r'resolve', r'bug', r'issue', r'error'],
                 'importance': 'critical',
                 'description': 'Bug fix or error resolution'
             },
@@ -505,57 +506,84 @@ class CommitMessageBuilder:
                 'description': 'Code refactoring or optimization'
             },
             'style': {
-                'patterns': [r'style', r'format', r'ui', r'design', r'css'],
+                'patterns': [r'style', r'format', r'ui', r'design'],
                 'importance': 'minor',
-                'description': 'UI/UX or code style changes'
+                'description': 'Style/UI changes'
             },
             'docs': {
-                'patterns': [r'doc', r'comment', r'readme', r'guide'],
+                'patterns': [r'doc', r'comment', r'readme'],
                 'importance': 'minor',
                 'description': 'Documentation updates'
             }
         }
 
+        # Technical areas cho phân tích
         self.technical_areas = {
-            'frontend': [r'\.vue', r'\.jsx?', r'\.tsx?', r'\.css', r'\.scss', r'\.html'],
-            'backend': [r'\.py', r'\.go', r'\.java', r'\.php', r'api', r'server'],
+            'frontend': [r'\.vue', r'\.jsx?', r'\.tsx?', r'\.css', r'\.html'],
+            'backend': [r'\.py', r'\.go', r'\.java', r'api', r'server'],
             'database': [r'model', r'migration', r'schema', r'\.sql'],
-            'testing': [r'test', r'spec', r'mock', r'fixture'],
-            'config': [r'\.env', r'\.yml', r'\.json', r'config', r'setting'],
-            'security': [r'auth', r'security', r'crypto', r'password', r'token'],
-            'ci_cd': [r'github/workflows', r'gitlab-ci', r'jenkins', r'docker'],
-            'dependencies': [r'requirements\.txt', r'package\.json', r'go\.mod']
+            'testing': [r'test', r'spec', r'mock'],
+            'config': [r'\.env', r'\.yml', r'\.json', r'config'],
+            'security': [r'auth', r'security', r'crypto', r'password'],
+            'ci_cd': [r'workflow', r'pipeline', r'docker'],
+            'deps': [r'requirements\.txt', r'package\.json', r'go\.mod']
         }
 
+    def build_message(self, details: CommitDetails) -> str:
+        """Tạo commit message từ CommitDetails"""
+        # Header
+        message = [f"{details.type}"]
+        if details.scope:
+            message[0] += f"({details.scope})"
+        message[0] += f": {details.subject}"
+
+        # Changes
+        if details.changes:
+            message.extend(["", "Changes:"])
+            message.extend(f"- {change}" for change in details.changes)
+
+        # Impacts
+        if details.impacts:
+            message.extend(["", "Impact:"])
+            message.extend(f"- {impact}" for impact in details.impacts)
+
+        # Notes
+        if details.notes:
+            message.extend(["", "Notes:"])
+            message.extend(f"- {note}" for note in details.notes)
+
+        # Breaking changes
+        if details.breaking:
+            message.extend(["", "BREAKING CHANGE: This commit includes breaking changes"])
+
+        return '\n'.join(message)
+
     def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
-        """Phân tích các thay đổi và tạo commit details"""
+        """Phân tích các thay đổi và tạo CommitDetails"""
         files = [Path(f) for f, _ in changes]
         types = [t for _, t in changes]
+
+        # Phân tích cơ bản
+        commit_type = self._determine_type(files, types)
+        scope = self._determine_scope(files)
+        subject = self._create_subject(files, types)
         
-        # Phân tích kỹ thuật
-        tech_analysis = self._analyze_technical_aspects(files, types)
-        
-        # Xác định type và scope chính
-        commit_type = self._determine_primary_type(files, types)
-        
-        # Tạo subject line thông minh
-        subject = self._create_smart_subject(commit_type, files, types, tech_analysis)
-        
-        # Tạo danh sách changes
+        # Tạo chi tiết changes
         detailed_changes = [
             f"{self._get_action_verb(t)} {f}" 
             for f, t in changes
         ]
-        
-        # Tạo danh sách impacts
-        impacts = self._analyze_impacts(tech_analysis)
-        
+
+        # Phân tích impacts
+        impacts = self._analyze_impacts(files, types)
+
         # Tạo notes
-        notes = self._create_technical_notes(tech_analysis)
-        
-        # Xác định scope
-        scope = self._determine_scope(files)
-        
+        notes = self._create_notes(files)
+
+        # Kiểm tra breaking changes
+        breaking = any('api' in str(f).lower() or 'interface' in str(f).lower() 
+                      for f in files)
+
         return CommitDetails(
             type=commit_type,
             scope=scope,
@@ -563,99 +591,79 @@ class CommitMessageBuilder:
             changes=detailed_changes,
             impacts=impacts,
             notes=notes,
-            breaking=tech_analysis.get('has_breaking_changes', False)
+            breaking=breaking
         )
 
-    def _analyze_technical_aspects(self, files: List[Path], types: List[str]) -> Dict:
-        """Phân tích chi tiết kỹ thuật của các thay đổi"""
-        analysis = {
-            'areas': set(),
-            'has_breaking_changes': False,
-            'importance': 'minor',
-            'complexity': 'low',
-            'risk_level': 'low',
-            'testing_required': False,
-            'review_priority': 'normal',
-            'dependencies_changed': False,
-            'security_impact': False,
-            'performance_impact': False,
-            'database_changes': False,
-            'api_changes': False
-        }
+    def _determine_type(self, files: List[Path], types: List[str]) -> str:
+        """Xác định loại commit dựa trên các thay đổi"""
+        content = ' '.join([str(f) for f in files] + types).lower()
+        
+        type_scores = {}
+        for commit_type, info in self.change_patterns.items():
+            score = sum(1 for pattern in info['patterns'] 
+                       if any(re.search(pattern, content)))
+            if score > 0:
+                type_scores[commit_type] = score
 
-        for file in files:
-            file_str = str(file).lower()
-            
-            # Phân tích technical areas
-            for area, patterns in self.technical_areas.items():
-                if any(re.search(pattern, file_str) for pattern in patterns):
-                    analysis['areas'].add(area)
+        if not type_scores:
+            return 'chore'
 
-            # Phân tích mức độ quan trọng và rủi ro
-            if any(term in file_str for term in ['api', 'auth', 'security', 'core']):
-                analysis['importance'] = 'critical'
-                analysis['risk_level'] = 'high'
-                analysis['review_priority'] = 'high'
-
-            # Kiểm tra breaking changes
-            if 'DELETED' in types or any(term in file_str for term in ['api', 'interface', 'contract']):
-                analysis['has_breaking_changes'] = True
-
-            # Phân tích dependencies
-            if any(term in file_str for term in ['requirements.txt', 'package.json', 'go.mod']):
-                analysis['dependencies_changed'] = True
-
-            # Phân tích security
-            if any(term in file_str for term in ['auth', 'security', 'crypto', 'password']):
-                analysis['security_impact'] = True
-                analysis['review_priority'] = 'high'
-
-            # Phân tích database
-            if any(term in file_str for term in ['model', 'migration', 'schema']):
-                analysis['database_changes'] = True
-                analysis['testing_required'] = True
-
-        return analysis
-
-    def build_message(self, analysis: CommitDetails) -> str:
-        """Tạo commit message chi tiết và có ý nghĩa"""
-        # Header
-        message = [f"{analysis.type}"]
-        if analysis.scope:
-            message[0] += f"({analysis.scope})"
-        message[0] += f": {analysis.subject}"
-
-        # Changes section
-        if analysis.changes:
-            message.extend(["", "Changes:"])
-            message.extend(f"- {change}" for change in analysis.changes)
-
-        # Impact section
-        if analysis.impacts:
-            message.extend(["", "Impact:"])
-            message.extend(f"- {impact}" for impact in analysis.impacts)
-
-        # Technical notes
-        if analysis.notes:
-            message.extend(["", "Notes:"])
-            message.extend(f"- {note}" for note in analysis.notes)
-
-        # Breaking changes warning
-        if analysis.breaking:
-            message.extend([
-                "",
-                "BREAKING CHANGE: This commit includes breaking changes that require attention"
-            ])
-
-        return '\n'.join(message) 
+        return max(type_scores.items(), key=lambda x: x[1])[0]
 
     def _determine_scope(self, files: List[Path]) -> str:
-        """Xác định scope của commit dựa trên files thay đổi"""
-        # Lấy các thư mục gốc của files
+        """Xác định scope của commit"""
         root_dirs = set(f.parts[0] if len(f.parts) > 1 else '' for f in files)
         
         if len(root_dirs) == 1:
             return next(iter(root_dirs))
-        elif len(root_dirs) > 1:
-            return 'multi'
-        return '' 
+        return 'multi' if root_dirs else ''
+
+    def _create_subject(self, files: List[Path], types: List[str]) -> str:
+        """Tạo subject line cho commit"""
+        if len(files) == 1:
+            file = files[0]
+            action = 'add' if 'CREATED' in types else \
+                    'remove' if 'DELETED' in types else 'update'
+            return f"{action} {file.name}"
+        
+        return f"update {len(files)} files"
+
+    def _get_action_verb(self, change_type: str) -> str:
+        """Trả về động từ cho loại thay đổi"""
+        return {
+            'CREATED': 'Add',
+            'MODIFIED': 'Update',
+            'DELETED': 'Remove'
+        }.get(change_type, 'Update')
+
+    def _analyze_impacts(self, files: List[Path], types: List[str]) -> List[str]:
+        """Phân tích impacts của thay đổi"""
+        impacts = []
+        
+        # Kiểm tra API changes
+        if any('api' in str(f).lower() for f in files):
+            impacts.append("API changes - update documentation")
+            
+        # Kiểm tra security
+        if any('security' in str(f).lower() or 'auth' in str(f).lower() for f in files):
+            impacts.append("Security changes - review required")
+            
+        # Kiểm tra database
+        if any('model' in str(f).lower() or 'migration' in str(f).lower() for f in files):
+            impacts.append("Database changes - migration may be needed")
+            
+        return impacts
+
+    def _create_notes(self, files: List[Path]) -> List[str]:
+        """Tạo các ghi chú cho commit"""
+        notes = []
+        
+        # Kiểm tra tests
+        if any('test' in str(f).lower() for f in files):
+            notes.append("Run test suite")
+            
+        # Kiểm tra dependencies
+        if any(f.name in ['requirements.txt', 'package.json'] for f in files):
+            notes.append("Update dependencies")
+            
+        return notes 
