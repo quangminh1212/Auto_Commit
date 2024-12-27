@@ -174,8 +174,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
         
-        # Setup header
-        self.setup_header(layout)
+        # Setup header  
+        self.setup_header(layout) 
         
         # Status bar
         self.status = QLabel("Status: No changes to commit")

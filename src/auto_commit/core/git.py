@@ -252,6 +252,7 @@ class CommitAnalyzer:
 
     def _determine_primary_type(self, files: List[Path], types: List[str]) -> str:
         """Xác định loại commit chính dựa trên các thay đổi"""
+        # Kết hợp tất cả nội dung để phân tích
         content = ' '.join([str(f) for f in files] + types).lower()
         
         # Đếm số lần xuất hiện của mỗi loại
@@ -276,6 +277,7 @@ class CommitAnalyzer:
             'minor': 1
         }
         
+        # Tìm type có importance cao nhất và score cao nhất
         return max(type_scores.items(),
                   key=lambda x: (importance_levels[x[1]['importance']], 
                                x[1]['score']))[0]
@@ -309,13 +311,13 @@ class CommitAnalyzer:
 
     def _create_smart_subject(self, commit_type: str, files: List[Path], 
                             types: List[str], analysis: Dict) -> str:
-        """Tạo subject line thông minh"""
+        """Tạo subject line thông minh cho commit"""
         if len(files) == 1:
             file = files[0]
             action = 'add' if 'CREATED' in types else \
                     'remove' if 'DELETED' in types else 'update'
             
-            if analysis['importance'] == 'critical':
+            if analysis.get('importance') == 'critical':
                 return f"{action} critical {file.name}"
             return f"{action} {file.name}"
         
@@ -526,30 +528,33 @@ class CommitMessageBuilder:
         }
 
     def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
-        """Phân tích sâu về các thay đổi để tạo commit thông minh"""
+        """Phân tích các thay đổi và tạo commit details"""
         files = [Path(f) for f, _ in changes]
         types = [t for _, t in changes]
         
         # Phân tích kỹ thuật
         tech_analysis = self._analyze_technical_aspects(files, types)
         
-        # Xác định loại thay đổi chính
+        # Xác định type và scope chính
         commit_type = self._determine_primary_type(files, types)
-        
-        # Phân tích scope và affected areas
-        scope, areas = self._analyze_scope_and_areas(files)
         
         # Tạo subject line thông minh
         subject = self._create_smart_subject(commit_type, files, types, tech_analysis)
         
-        # Phân tích chi tiết changes
-        detailed_changes = self._analyze_detailed_changes(files, types, tech_analysis)
+        # Tạo danh sách changes
+        detailed_changes = [
+            f"{self._get_action_verb(t)} {f}" 
+            for f, t in changes
+        ]
         
-        # Phân tích impacts
+        # Tạo danh sách impacts
         impacts = self._analyze_impacts(tech_analysis)
         
-        # Tạo technical notes
+        # Tạo notes
         notes = self._create_technical_notes(tech_analysis)
+        
+        # Xác định scope
+        scope = self._determine_scope(files)
         
         return CommitDetails(
             type=commit_type,
@@ -558,10 +563,7 @@ class CommitMessageBuilder:
             changes=detailed_changes,
             impacts=impacts,
             notes=notes,
-            breaking=tech_analysis['has_breaking_changes'],
-            importance=tech_analysis['importance'],
-            affected_areas=areas,
-            technical_details=tech_analysis
+            breaking=tech_analysis.get('has_breaking_changes', False)
         )
 
     def _analyze_technical_aspects(self, files: List[Path], types: List[str]) -> Dict:
@@ -646,3 +648,14 @@ class CommitMessageBuilder:
             ])
 
         return '\n'.join(message) 
+
+    def _determine_scope(self, files: List[Path]) -> str:
+        """Xác định scope của commit dựa trên files thay đổi"""
+        # Lấy các thư mục gốc của files
+        root_dirs = set(f.parts[0] if len(f.parts) > 1 else '' for f in files)
+        
+        if len(root_dirs) == 1:
+            return next(iter(root_dirs))
+        elif len(root_dirs) > 1:
+            return 'multi'
+        return '' 
