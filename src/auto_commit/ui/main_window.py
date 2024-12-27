@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, 
                            QTableWidget, QTableWidgetItem, QLabel, QHeaderView,
-                           QApplication, QHBoxLayout, QCheckBox, QSpinBox)
+                           QApplication, QHBoxLayout, QCheckBox, QSpinBox, QLineEdit)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
@@ -40,43 +40,33 @@ class MainWindow(QMainWindow):
             QWidget {
                 background-color: #2d2d2d;
                 border-radius: 8px;
-                padding: 15px;
-            }
-            QLabel {
-                color: #3daee9;
-                font-size: 24px;
-                font-weight: bold;
             }
             QCheckBox {
-                color: #ffffff;
+                color: #3daee9;
                 font-size: 14px;
                 spacing: 8px;
             }
             QCheckBox::indicator {
-                width: 20px;
-                height: 20px;
-                border-radius: 4px;
-                border: 2px solid #3daee9;
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 1px solid #3daee9;
             }
             QCheckBox::indicator:checked {
                 background-color: #3daee9;
             }
-            QSpinBox {
-                background-color: #363636;
+            QLabel {
                 color: #ffffff;
+                font-size: 14px;
+            }
+            QLineEdit {
+                background-color: #363636;
+                color: #3daee9;
                 border: 1px solid #3daee9;
-                border-radius: 4px;
-                padding: 5px;
+                border-radius: 3px;
+                padding: 4px 8px;
                 min-width: 60px;
                 max-width: 80px;
-            }
-            QSpinBox::up-button, QSpinBox::down-button {
-                border: none;
-                background: #404040;
-                width: 20px;
-            }
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
-                background: #505050;
             }
             .help-text {
                 color: #888888;
@@ -85,51 +75,68 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        header_layout = QVBoxLayout(header)
-        header_layout.setSpacing(10)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(10, 10, 10, 10)
+        header_layout.setSpacing(15)
 
-        # Title và controls trong một hàng
-        title_row = QHBoxLayout()
-        
-        # Auto Commit controls
-        controls = QHBoxLayout()
-        controls.setSpacing(15)
-
+        # Auto Commit checkbox
         self.auto_commit_checkbox = QCheckBox("Auto Commit")
         self.auto_commit_checkbox.setChecked(self.auto_commit)
         self.auto_commit_checkbox.stateChanged.connect(self.toggle_auto_commit)
-        controls.addWidget(self.auto_commit_checkbox)
+        header_layout.addWidget(self.auto_commit_checkbox)
 
-        # Delay settings với label
-        delay_widget = QWidget()
-        delay_layout = QHBoxLayout(delay_widget)
-        delay_layout.setContentsMargins(0, 0, 0, 0)
-        delay_layout.setSpacing(8)
-        
+        # Commit Delay
         delay_label = QLabel("Commit Delay:")
-        delay_label.setStyleSheet("color: #ffffff; font-size: 14px;")
-        delay_layout.addWidget(delay_label)
+        header_layout.addWidget(delay_label)
         
-        self.delay_spinbox = QSpinBox()
-        self.delay_spinbox.setRange(1, 3600)
-        self.delay_spinbox.setValue(self.commit_delay)
-        self.delay_spinbox.setSuffix("s")
-        self.delay_spinbox.valueChanged.connect(self.change_commit_delay)
-        delay_layout.addWidget(self.delay_spinbox)
+        self.delay_input = QLineEdit()
+        self.delay_input.setText(f"{self.commit_delay}s")
+        self.delay_input.setFixedWidth(60)
+        self.delay_input.textChanged.connect(self.on_delay_changed)
+        header_layout.addWidget(self.delay_input)
         
-        controls.addWidget(delay_widget)
-        controls.addStretch()
-        
-        title_row.addLayout(controls)
-        header_layout.addLayout(title_row)
+        header_layout.addStretch()
 
-        # Help text
+        # Help text ở dưới
+        help_container = QWidget()
+        help_layout = QVBoxLayout(help_container)
+        help_layout.setContentsMargins(0, 5, 0, 0)
+        
         help_text = QLabel("Hold Alt for 1 second to commit manually")
         help_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        help_text.setProperty("class", "help-text")
-        header_layout.addWidget(help_text)
+        help_text.setStyleSheet("color: #888888; font-style: italic; font-size: 12px;")
+        help_layout.addWidget(help_text)
 
-        layout.addWidget(header)
+        # Tạo container chung
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+        container_layout.addWidget(header)
+        container_layout.addWidget(help_container)
+
+        layout.addWidget(container)
+
+    def on_delay_changed(self, text):
+        """Xử lý khi thay đổi giá trị delay"""
+        try:
+            # Loại bỏ 's' nếu có
+            value = text.replace('s', '')
+            delay = int(value)
+            if 1 <= delay <= 3600:  # Giới hạn từ 1-3600 giây
+                self.commit_delay = delay
+                if self.auto_commit and hasattr(self, 'auto_commit_timer'):
+                    self.auto_commit_timer.setInterval(delay * 1000)
+            
+            # Tự động thêm 's' vào cuối nếu chưa có
+            if not text.endswith('s'):
+                self.delay_input.setText(f"{value}s")
+                # Di chuyển con trỏ về trước 's'
+                self.delay_input.setCursorPosition(len(value))
+                
+        except ValueError:
+            # Nếu giá trị không hợp lệ, reset về giá trị cũ
+            self.delay_input.setText(f"{self.commit_delay}s")
 
     def setup_ui(self):
         """Thiết lập giao diện chính"""
