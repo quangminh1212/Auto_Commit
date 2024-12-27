@@ -617,7 +617,7 @@ class MainWindow(QMainWindow):
         try:
             self.status.setText("Status: Committing all changes...")
             
-            # Tạo commit message builder
+            # Sử dụng CommitMessageBuilder thay vì CommitAnalyzer
             builder = CommitMessageBuilder()
             
             # Phân tích changes
