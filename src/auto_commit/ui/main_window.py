@@ -8,26 +8,36 @@ from pathlib import Path
 from auto_commit.core.git import CommitMessageBuilder
 import re
 
-class MainWindow(QMainWindow): 
-    def __init__(self):  # Bỏ tham số app
+class MainWindow(QMainWindow):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle("Auto Commit")
         
-        # Khởi tạo các biến
+        # Khởi tạo các biến trước khi setup UI
         self.auto_commit = False
         self.commit_delay = 30
         self.changes_to_commit = []
         self.alt_press_time = None
+        self.is_watching = False  # Thêm thuộc tính is_watching
+        
+        # Khởi tạo các thành phần UI
+        self.status = None
+        self.table = None
+        self.delay_input = None
+        self.auto_commit_btn = None
+        self.commit_all_btn = None
         
         # Tạo QTimer
         self.auto_commit_timer = QTimer(self)
         self.auto_commit_timer.timeout.connect(self.commit_all_changes)
         
-        # Setup UI
+        # Khởi tạo file watcher trước khi setup UI
+        self.watcher = QFileSystemWatcher(self)
+        
+        # Setup UI (sẽ khởi tạo các thành phần UI)
         self.setup_ui()
         
-        # Khởi tạo file watcher
-        self.watcher = QFileSystemWatcher(self)
+        # Kết nối signals sau khi setup UI hoàn tất
         self.watcher.fileChanged.connect(self.on_file_changed)
         self.watcher.directoryChanged.connect(self.on_directory_changed)
 
@@ -216,25 +226,18 @@ class MainWindow(QMainWindow):
         self.setup_table(layout)
 
     def start_watching(self):
-        """Bắt đầu theo dõi"""
+        """Bắt đầu theo dõi thay đổi"""
         if not self.is_watching:
             self.is_watching = True
-            self.start_btn.setText("Stop Watching")
-            self.status.setText("Status: Watching")
-            self.status.setStyleSheet("color: #2ecc71;")
-            if self.auto_commit:
-                self.auto_commit_timer.start(self.commit_delay * 1000)
-        else:
-            self.stop_watching()
+            self.status.setText("Status: Watching for changes...")
+            # Thêm logic theo dõi thư mục ở đây
 
     def stop_watching(self):
-        """Dừng theo dõi"""
-        self.is_watching = False
-        self.start_btn.setText("Start Watching")
-        self.status.setText("Status: Stopped")
-        self.status.setStyleSheet("color: #e74c3c;")
-        if self.auto_commit_timer.isActive():
-            self.auto_commit_timer.stop()
+        """Dừng theo dõi thay đổi"""
+        if self.is_watching:
+            self.is_watching = False
+            self.status.setText("Status: Watching stopped")
+            # Thêm logic dừng theo dõi ở đây
 
     def toggle_auto_commit(self):
         """Toggle chế độ auto commit"""
