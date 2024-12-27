@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         self.commit_analyzer = CommitAnalyzer()
 
         # Khởi tạo UI và timers  
-        self.setup_ui()
+        self.setup_ui()     
         self.init_timers()   
 
     def init_timers(self):
