@@ -7,7 +7,7 @@ from datetime import datetime
 from auto_commit.core.git import CommitAnalyzer, ChangeType
 
 class MainWindow(QMainWindow):
-    def __init__(self, app: QApplication):
+    def __init__(self, app: QApplication): 
         super().__init__()
         # Khởi tạo các thuộc tính
         self.app = app
