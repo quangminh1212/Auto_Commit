@@ -485,3 +485,105 @@ class CommitMessageBuilder:
             desc.append("(BREAKING)")
 
         return ' '.join(desc) 
+
+    def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
+        """Phân tích các thay đổi và tạo commit details"""
+        # Tách files và types
+        files = [Path(f) for f, _ in changes]
+        types = [t for _, t in changes]
+        
+        # Phân tích ngữ nghĩa
+        meanings = self.analyze_semantic_meaning(files, types)
+        
+        # Phân tích impacts
+        impacts = self.analyze_detailed_impact(files, types)
+        
+        # Xác định type và scope chính
+        if meanings:
+            primary_meaning = max(meanings, key=lambda m: {
+                'critical': 3, 'major': 2, 'medium': 1, 'minor': 0
+            }[m['importance']])
+            commit_type = primary_meaning['type']
+            scope = ','.join(primary_meaning['contexts']) if primary_meaning['contexts'] else ''
+        else:
+            commit_type = 'chore'
+            scope = ''
+
+        # Tạo subject
+        subject = self._create_subject(files, types)
+        
+        # Tạo danh sách changes
+        detailed_changes = [
+            f"{self._get_action_verb(t)} {f}" 
+            for f, t in changes
+        ]
+        
+        # Tạo danh sách impacts
+        impact_notes = []
+        for impact_type, impact_info in impacts.items():
+            details = []
+            if impact_info['requires_attention']:
+                details.append("requires attention")
+            if impact_info['requires_review']:
+                details.append("needs security review")
+            if impact_info['needs_testing']:
+                details.append("requires testing")
+            
+            if details:
+                impact_notes.append(
+                    f"{impact_type.replace('_', ' ').title()}: {', '.join(details)}"
+                )
+
+        # Tạo notes
+        notes = self._create_notes(files, types)
+        
+        # Kiểm tra breaking changes
+        breaking = any(
+            i['warning_level'] in ['critical', 'high'] 
+            for i in impacts.values()
+        )
+        
+        return CommitDetails(
+            type=commit_type,
+            scope=scope,
+            subject=subject,
+            changes=detailed_changes,
+            impacts=impact_notes,
+            notes=notes,
+            breaking=breaking
+        )
+
+    def _get_action_verb(self, change_type: str) -> str:
+        """Trả về động từ mô tả hành động"""
+        return {
+            'CREATED': 'Add',
+            'MODIFIED': 'Update',
+            'DELETED': 'Remove'
+        }.get(change_type, 'Update')
+
+    def _create_subject(self, files: List[Path], types: List[str]) -> str:
+        """Tạo subject line cho commit"""
+        if len(files) == 1:
+            action = self._get_action_verb(types[0])
+            return f"{action.lower()} {files[0].name}"
+        
+        categories = set(self._get_file_category(f) for f in files)
+        if len(categories) == 1:
+            category = next(iter(categories))
+            return f"update {len(files)} {category} files"
+        
+        return f"update {len(files)} files across {len(categories)} categories"
+
+    def _get_file_category(self, file: Path) -> str:
+        """Xác định category của file"""
+        if 'test' in str(file).lower():
+            return 'test'
+        elif file.suffix in ['.py', '.js', '.ts']:
+            return 'source'
+        elif file.suffix in ['.css', '.scss', '.html']:
+            return 'ui'
+        elif file.suffix in ['.md', '.rst']:
+            return 'docs'
+        elif file.suffix in ['.json', '.yaml', '.yml']:
+            return 'config'
+        return 'other' 
