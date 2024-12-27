@@ -26,41 +26,54 @@ class CommitAnalyzer:
     def __init__(self):
         self.changes: List[FileChange] = []
         
-        # Định nghĩa các pattern
-        self.test_patterns = [
-            r"test_.*\.py$",
-            r".*_test\.py$",
-            r"tests/.*\.py$"
-        ]
-        
-        self.config_extensions = {
-            ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg"
-        }
-        
-        self.doc_extensions = {
-            ".md", ".rst", ".txt", ".doc", ".docx", ".pdf"
-        }
-        
-        # Mapping commit types
-        self.commit_type_mapping = {
-            # Python files
-            ".py": {
-                "created": "feat",
-                "modified": "fix",
-                "deleted": "refactor"
+        # Chi tiết hơn về loại file
+        self.file_categories = {
+            # Frontend
+            'frontend': {
+                'extensions': {'.js', '.ts', '.jsx', '.tsx', '.vue', '.css', '.scss', '.html'},
+                'patterns': [r'src/frontend/.*', r'public/.*', r'static/.*']
             },
-            # Config files
-            ".yaml": {
-                "created": "config",
-                "modified": "config",
-                "deleted": "config"
+            # Backend
+            'backend': {
+                'extensions': {'.py', '.go', '.java', '.rb'},
+                'patterns': [r'src/backend/.*', r'api/.*']
             },
-            # Doc files
-            ".md": {
-                "created": "docs",
-                "modified": "docs",
-                "deleted": "docs"
+            # Database
+            'database': {
+                'extensions': {'.sql', '.prisma', '.mongodb'},
+                'patterns': [r'migrations/.*', r'db/.*']
+            },
+            # Tests
+            'test': {
+                'extensions': {'.spec.js', '.test.py'},
+                'patterns': [r'test[s]?/.*', r'.*_test\..*', r'.*\.test\..*']
+            },
+            # Config
+            'config': {
+                'extensions': {'.json', '.yaml', '.yml', '.toml', '.ini', '.env'},
+                'patterns': [r'config/.*', r'settings/.*']
+            },
+            # Docs
+            'docs': {
+                'extensions': {'.md', '.rst', '.txt', '.pdf'},
+                'patterns': [r'docs/.*', r'README.*', r'CHANGELOG.*']
+            },
+            # CI/CD
+            'ci': {
+                'extensions': {'.yml', '.yaml'},
+                'patterns': [r'\.github/.*', r'\.gitlab-ci\..*', r'Jenkinsfile']
             }
+        }
+        
+        # Commit type mapping chi tiết hơn
+        self.commit_types = {
+            'feat': ['new feature', 'add functionality', 'implement'],
+            'fix': ['bug fix', 'resolve issue', 'fix error'],
+            'refactor': ['reorganize', 'restructure', 'optimize'],
+            'style': ['formatting', 'white-space', 'styling'],
+            'docs': ['documentation', 'comments', 'explanation'],
+            'test': ['testing', 'coverage', 'unit test'],
+            'chore': ['maintenance', 'dependencies', 'config']
         }
 
     def add_change(self, file_path: str, change_type: ChangeType) -> None:
@@ -99,62 +112,136 @@ class CommitAnalyzer:
             
         return groups
 
-    def generate_commit_messages(self) -> List[str]:
-        """Tạo commit messages thông minh"""
-        messages = []
-        groups = self.analyze_changes()
+    def _get_file_category(self, file_path: str) -> str:
+        """Xác định category của file dựa trên extension và pattern"""
+        path = str(file_path)
         
-        for group_type, changes in groups.items():
-            if not changes:
-                continue
-                
-            # Xác định prefix
-            if group_type == "test":
-                prefix = "test"
-            elif group_type == "config":
-                prefix = "config"
-            elif group_type == "docs":
-                prefix = "docs"
-            else:
-                # Lấy type phổ biến nhất trong nhóm
-                type_counts = {}
-                for change in changes:
-                    change_type = self.commit_type_mapping.get(
-                        change.extension, {}
-                    ).get(change.type.value, "chore")
-                    type_counts[change_type] = type_counts.get(change_type, 0) + 1
-                
-                prefix = max(type_counts.items(), key=lambda x: x[1])[0]
+        for category, rules in self.file_categories.items():
+            # Kiểm tra extension
+            if any(path.endswith(ext) for ext in rules['extensions']):
+                return category
             
-            # Tạo mô tả chi tiết
+            # Kiểm tra patterns
+            if any(re.match(pattern, path) for pattern in rules['patterns']):
+                return category
+                
+        return 'other'
+
+    def _analyze_change_impact(self, changes: List[FileChange]) -> Dict:
+        """Phân tích mức độ ảnh hưởng của thay đổi"""
+        impact = {
+            'breaking': False,
+            'scope': set(),
+            'components': set(),
+            'dependencies_changed': False
+        }
+        
+        for change in changes:
+            # Kiểm tra breaking changes
+            if change.type == ChangeType.DELETED:
+                impact['breaking'] = True
+            
+            # Xác định scope
+            category = self._get_file_category(str(change.path))
+            impact['scope'].add(category)
+            
+            # Xác định components bị ảnh hưởng
+            components = re.findall(r'src/([^/]+)/', str(change.path))
+            impact['components'].update(components)
+            
+            # Kiểm tra dependencies
+            if any(dep in str(change.path) for dep in ['package.json', 'requirements.txt', 'go.mod']):
+                impact['dependencies_changed'] = True
+                
+        return impact
+
+    def generate_commit_messages(self) -> List[str]:
+        """Tạo commit messages chi tiết"""
+        if not self.changes:
+            return []
+            
+        # Nhóm changes theo category
+        changes_by_category = {}
+        for change in self.changes:
+            category = self._get_file_category(str(change.path))
+            if category not in changes_by_category:
+                changes_by_category[category] = []
+            changes_by_category[category].append(change)
+        
+        messages = []
+        for category, changes in changes_by_category.items():
+            # Phân tích impact
+            impact = self._analyze_change_impact(changes)
+            
+            # Xác định commit type
+            if category == 'test':
+                commit_type = 'test'
+            elif category == 'docs':
+                commit_type = 'docs'
+            elif category == 'config':
+                commit_type = 'chore'
+            else:
+                commit_type = self._determine_commit_type(changes)
+            
+            # Tạo scope
+            scope = None
+            if len(impact['scope']) == 1:
+                scope = next(iter(impact['scope']))
+            elif impact['components']:
+                scope = ','.join(sorted(impact['components']))
+            
+            # Tạo message chính
             if len(changes) == 1:
                 change = changes[0]
-                action = "add" if change.type == ChangeType.CREATED else \
-                        "update" if change.type == ChangeType.MODIFIED else "remove"
-                detail = f"{action} {change.path.name}"
+                action = self._get_action_verb(change.type)
+                subject = f"{action} {change.path.name}"
             else:
-                # Nhóm các hành động
-                actions = {c.type for c in changes}
-                if len(actions) == 1:
-                    action = next(iter(actions)).value
-                    detail = f"bulk {action} {len(changes)} {group_type} files"
-                else:
-                    detail = f"update multiple {group_type} files"
+                subject = f"update {len(changes)} {category} files"
             
-            # Tạo commit message
-            message = f"{prefix}: {detail}"
+            # Tạo commit message đầy đủ
+            message = f"{commit_type}"
+            if scope:
+                message += f"({scope})"
+            message += f": {subject}"
             
-            # Thêm scope nếu cần
-            if any(c.is_test for c in changes):
-                message = f"{prefix}(test): {detail}"
+            # Thêm body nếu cần
+            body = []
+            if len(changes) > 1:
+                body.append("\nChanges:")
+                for change in changes:
+                    action = self._get_action_verb(change.type)
+                    body.append(f"- {action} {change.path}")
             
-            # Thêm breaking change nếu có file bị xóa
-            if any(c.type == ChangeType.DELETED for c in changes):
-                message += "\n\nBREAKING CHANGE: Some files were deleted"
+            # Thêm breaking change
+            if impact['breaking']:
+                body.append("\nBREAKING CHANGE: This commit includes file deletions")
+            
+            # Thêm dependencies notice
+            if impact['dependencies_changed']:
+                body.append("\nNote: Dependencies were modified")
+            
+            if body:
+                message += '\n' + '\n'.join(body)
             
             messages.append(message)
-        
+            
         return messages
+
+    def _determine_commit_type(self, changes: List[FileChange]) -> str:
+        """Xác định loại commit dựa trên các thay đổi"""
+        if any(c.type == ChangeType.CREATED for c in changes):
+            return 'feat'
+        elif any(c.type == ChangeType.DELETED for c in changes):
+            return 'refactor'
+        return 'fix'
+
+    def _get_action_verb(self, change_type: ChangeType) -> str:
+        """Trả về động từ mô tả hành động"""
+        return {
+            ChangeType.CREATED: "add",
+            ChangeType.MODIFIED: "update",
+            ChangeType.DELETED: "remove"
+        }[change_type]
 
     def clear(self):
         """Xóa tất cả thay đổi đã phân tích"""
