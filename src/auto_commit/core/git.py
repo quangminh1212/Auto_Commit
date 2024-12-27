@@ -468,7 +468,7 @@ class GitHandler:
             raise 
 
 @dataclass
-class CommitDetails:
+class CommitDetails:    
     type: str
     scope: str
     subject: str

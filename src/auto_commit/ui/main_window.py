@@ -177,7 +177,7 @@ class MainWindow(QMainWindow):
         # Setup header  
         self.setup_header(layout) 
         
-        # Status bar
+        # Status bar   
         self.status = QLabel("Status: No changes to commit")
         self.status.setStyleSheet("""
             QLabel {
@@ -716,63 +716,111 @@ class MainWindow(QMainWindow):
     def commit_all_changes(self):
         """Commit tất cả thay đổi ngay lập tức"""
         if not self.changes_to_commit:
+            self.status.setText("Status: No changes to commit")
             return
             
         try:
+            self.status.setText("Status: Preparing commit...")
+            
             # Tạo commit message builder
             builder = CommitMessageBuilder()
             
-            # Phân tích changes
-            changes = [(c['file'], c['type']) for c in self.changes_to_commit]
-            details = builder.analyze_changes(changes)
+            # Chuẩn bị danh sách changes
+            changes = []
+            for change in self.changes_to_commit:
+                if 'file' in change and 'type' in change:  # Kiểm tra keys tồn tại
+                    changes.append((change['file'], change['type']))
             
-            # Tạo commit message
-            message = builder.build_message(details)
+            # Kiểm tra changes không rỗng
+            if not changes:
+                self.status.setText("Status: No valid changes to commit")
+                return
+                
+            # Phân tích changes và tạo message
+            try:
+                details = builder.analyze_changes(changes)
+                if not details:
+                    raise ValueError("Could not analyze changes")
+                    
+                message = builder.build_message(details)
+                if not message:
+                    raise ValueError("Could not build commit message")
+            except Exception as e:
+                raise Exception(f"Error preparing commit: {str(e)}")
             
             # Thực hiện git commit
-            self._execute_git_commit(message)
+            try:
+                self._execute_git_commit(message)
+            except Exception as e:
+                raise Exception(f"Git commit failed: {str(e)}")
             
-            # Hiển thị trong bảng với highlight
+            # Cập nhật UI
             self._add_commit_entry(message, highlight=True)
             
             # Cập nhật status cho từng file
             for change in self.changes_to_commit:
-                self._update_file_status(change['file'], "committed")
+                if 'file' in change:
+                    self._update_file_status(change['file'], "committed")
             
             # Clear changes và cập nhật status
             self.changes_to_commit.clear()
             self.status.setText("Status: Changes committed successfully")
             
         except Exception as e:
-            self.status.setText(f"Error: {str(e)}")
-            print(f"Commit error: {str(e)}")
+            error_msg = str(e)
+            self.status.setText(f"Error: {error_msg}")
+            print(f"Commit error: {error_msg}")
+            
+            # Hiển thị error dialog
+            QMessageBox.critical(
+                self,
+                "Commit Error",
+                f"Failed to commit changes:\n{error_msg}",
+                QMessageBox.StandardButton.Ok
+            )
 
     def _execute_git_commit(self, message: str):
         """Thực hiện git commit với message"""
         import subprocess
         import os
         
+        if not message:
+            raise ValueError("Commit message cannot be empty")
+            
         try:
             # Đảm bảo đang ở trong git repository
             repo_path = os.getcwd()
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                raise Exception("Not a git repository")
             
             # Add tất cả changes
-            subprocess.run(['git', 'add', '.'], 
-                         cwd=repo_path, 
-                         check=True, 
-                         capture_output=True)
+            add_result = subprocess.run(
+                ['git', 'add', '.'],
+                cwd=repo_path,
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            
+            if add_result.returncode != 0:
+                raise Exception(f"Git add failed: {add_result.stderr}")
             
             # Thực hiện commit
-            result = subprocess.run(['git', 'commit', '-m', message],
-                                 cwd=repo_path,
-                                 check=True,
-                                 capture_output=True,
-                                 text=True)
+            commit_result = subprocess.run(
+                ['git', 'commit', '-m', message],
+                cwd=repo_path,
+                check=True,
+                capture_output=True,
+                text=True
+            )
             
-            print("Git commit output:", result.stdout)
+            if commit_result.returncode != 0:
+                raise Exception(f"Git commit failed: {commit_result.stderr}")
+                
+            print("Git commit output:", commit_result.stdout)
             
         except subprocess.CalledProcessError as e:
-            raise Exception(f"Git commit failed: {e.stderr}")
+            raise Exception(f"Git command failed: {e.stderr}")
         except Exception as e:
             raise Exception(f"Git operation failed: {str(e)}")
 
