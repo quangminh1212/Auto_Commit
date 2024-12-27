@@ -587,3 +587,30 @@ class CommitMessageBuilder:
         elif file.suffix in ['.json', '.yaml', '.yml']:
             return 'config'
         return 'other' 
+
+    def _create_notes(self, files: List[Path], types: List[str]) -> List[str]:
+        """Tạo các ghi chú cho commit"""
+        notes = []
+        
+        # Kiểm tra dependencies
+        if any(f.name in ['requirements.txt', 'package.json', 'go.mod', 'pom.xml'] for f in files):
+            notes.append("Dependencies were modified - update required")
+            
+        # Kiểm tra database
+        if any('migration' in str(f) or 'model' in str(f) for f in files):
+            notes.append("Database changes detected - migration may be required")
+            
+        # Kiểm tra tests
+        if any('test' in str(f) for f in files):
+            notes.append("Test files modified - run test suite")
+            
+        # Kiểm tra security
+        if any(term in str(f).lower() for f in files 
+              for term in ['auth', 'security', 'password', 'crypto']):
+            notes.append("Security-related changes - review required")
+            
+        # Kiểm tra API
+        if any('api' in str(f).lower() for f in files):
+            notes.append("API changes detected - update documentation")
+            
+        return notes 
