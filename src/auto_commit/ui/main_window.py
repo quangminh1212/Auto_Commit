@@ -327,3 +327,56 @@ class MainWindow(QMainWindow):
         self.check_alt_timer.stop()
         self.auto_commit_timer.stop()
         event.accept()
+
+    def setup_table(self, layout):
+        """Thiết lập bảng theo dõi thay đổi"""
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
+        
+        # Style cho table
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: #252526;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                gridline-color: #3d3d3d;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #3d3d3d;
+                color: #ffffff;
+            }
+            QTableWidget::item:selected {
+                background-color: #2d5a88;
+            }
+            QHeaderView::section {
+                background-color: #2d2d2d;
+                padding: 8px;
+                border: none;
+                color: #ffffff;
+                font-weight: bold;
+            }
+            QTableWidget::item:alternate {
+                background-color: #2d2d2d;
+            }
+        """)
+        
+        # Cấu hình header
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # Time
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Type
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)          # File
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Status
+        
+        # Ẩn vertical header
+        self.table.verticalHeader().setVisible(False)
+        
+        # Bật alternating row colors
+        self.table.setAlternatingRowColors(True)
+        
+        # Chọn cả dòng
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        
+        # Thêm vào layout
+        layout.addWidget(self.table)
