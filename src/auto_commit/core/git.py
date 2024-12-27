@@ -36,7 +36,7 @@ class CommitAnalyzer:
             # Backend
             'backend': {
                 'extensions': {'.py', '.go', '.java', '.rb'},
-                'patterns': [r'src/backend/.*', r'api/.*']
+                'patterns': [r'src/backend/.*', r'api/.*'] 
             },
             # Database
             'database': {
@@ -77,16 +77,19 @@ class CommitAnalyzer:
         }
 
     def add_change(self, file_path: str, change_type: ChangeType) -> None:
+        
+        """Thêm một thay đổi mới để phân tích"""
         path = Path(file_path)
+        category = self._get_file_category(str(path))
         
         change = FileChange(
             path=path,
             type=change_type,
             time=datetime.now(),
             extension=path.suffix.lower(),
-            is_test=any(re.match(pattern, str(path)) for pattern in self.test_patterns),
-            is_config=path.suffix.lower() in self.config_extensions,
-            is_doc=path.suffix.lower() in self.doc_extensions
+            is_test=(category == 'test'),
+            is_config=(category == 'config'),
+            is_doc=(category == 'docs')
         )
         
         self.changes.append(change)
