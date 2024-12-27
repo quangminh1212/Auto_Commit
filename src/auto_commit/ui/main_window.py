@@ -9,6 +9,7 @@ from auto_commit.core.git import CommitAnalyzer, ChangeType
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super().__init__()
+        # Khởi tạo các thuộc tính
         self.app = app
         self.auto_commit = False
         self.commit_delay = 30
@@ -16,13 +17,19 @@ class MainWindow(QMainWindow):
         self.alt_press_time = None
         self.is_watching = False
         self.commit_analyzer = CommitAnalyzer()
+
+        # Khởi tạo UI và timers
         self.setup_ui()
-        
-        # Khởi tạo timers
+        self.init_timers()
+
+    def init_timers(self):
+        """Khởi tạo các timers"""
+        # Timer cho việc kiểm tra phím Alt
         self.check_alt_timer = QTimer()
         self.check_alt_timer.timeout.connect(self.check_alt_press)
         self.check_alt_timer.start(100)
 
+        # Timer cho auto commit
         self.auto_commit_timer = QTimer()
         self.auto_commit_timer.timeout.connect(self.auto_commit_changes)
 
@@ -43,53 +50,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
 
         # Settings panel
-        settings_panel = QWidget()
-        settings_layout = QVBoxLayout(settings_panel)
-        settings_panel.setStyleSheet("""
-            QWidget {
-                background-color: #333333;
-                border-radius: 5px;
-                padding: 10px;
-            }
-            QLabel {
-                color: white;
-            }
-            QCheckBox {
-                color: white;
-            }
-            QSpinBox {
-                background-color: #444444;
-                color: white;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-        """)
-
-        # Auto commit settings
-        auto_commit_layout = QHBoxLayout()
-        self.auto_commit_checkbox = QCheckBox("Auto Commit")
-        self.auto_commit_checkbox.setChecked(self.auto_commit)
-        self.auto_commit_checkbox.stateChanged.connect(self.toggle_auto_commit)
-        auto_commit_layout.addWidget(self.auto_commit_checkbox)
-
-        # Commit delay settings
-        delay_label = QLabel("Commit Delay (seconds):")
-        self.delay_spinbox = QSpinBox()
-        self.delay_spinbox.setRange(1, 3600)
-        self.delay_spinbox.setValue(self.commit_delay)
-        self.delay_spinbox.valueChanged.connect(self.change_commit_delay)
-        auto_commit_layout.addWidget(delay_label)
-        auto_commit_layout.addWidget(self.delay_spinbox)
-        
-        settings_layout.addLayout(auto_commit_layout)
-        
-        # Manual commit help
-        manual_commit_label = QLabel("Hold Alt for 1 second to commit manually")
-        manual_commit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        manual_commit_label.setStyleSheet("color: #888888; font-size: 12px;")
-        settings_layout.addWidget(manual_commit_label)
-        
-        layout.addWidget(settings_panel)
+        self.setup_settings_panel(layout)
 
         # Status
         self.status = QLabel("Status: Idle")
@@ -102,21 +63,94 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.start_btn)
 
         # Table
+        self.setup_table(layout)
+
+    def setup_settings_panel(self, parent_layout):
+        """Thiết lập panel cài đặt"""
+        settings_panel = QWidget()
+        settings_layout = QVBoxLayout(settings_panel)
+        settings_panel.setStyleSheet("""
+            QWidget {
+                background-color: #333333;
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QLabel { color: white; }
+            QCheckBox { color: white; }
+            QSpinBox {
+                background-color: #444444;
+                color: white;
+                border: 1px solid #555555;
+                padding: 5px;
+            }
+        """)
+
+        # Auto commit settings
+        auto_commit_layout = QHBoxLayout()
+        
+        self.auto_commit_checkbox = QCheckBox("Auto Commit")
+        self.auto_commit_checkbox.setChecked(self.auto_commit)
+        self.auto_commit_checkbox.stateChanged.connect(self.toggle_auto_commit)
+        auto_commit_layout.addWidget(self.auto_commit_checkbox)
+
+        delay_label = QLabel("Commit Delay (seconds):")
+        self.delay_spinbox = QSpinBox()
+        self.delay_spinbox.setRange(1, 3600)
+        self.delay_spinbox.setValue(self.commit_delay)
+        self.delay_spinbox.valueChanged.connect(self.change_commit_delay)
+        
+        auto_commit_layout.addWidget(delay_label)
+        auto_commit_layout.addWidget(self.delay_spinbox)
+        settings_layout.addLayout(auto_commit_layout)
+
+        # Manual commit help
+        help_label = QLabel("Hold Alt for 1 second to commit manually")
+        help_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        help_label.setStyleSheet("color: #888888; font-size: 12px;")
+        settings_layout.addWidget(help_label)
+
+        parent_layout.addWidget(settings_panel)
+
+    def setup_table(self, parent_layout):
+        """Thiết lập bảng theo dõi"""
         self.table = QTableWidget()
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
+        
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        
         self.table.verticalHeader().setVisible(False)
-        layout.addWidget(self.table)
+        parent_layout.addWidget(self.table)
+
+    def start_watching(self):
+        """Bắt đầu theo dõi"""
+        if not self.is_watching:
+            self.is_watching = True
+            self.start_btn.setText("Stop Watching")
+            self.status.setText("Status: Watching")
+            self.status.setStyleSheet("color: #2ecc71;")
+            if self.auto_commit:
+                self.auto_commit_timer.start(self.commit_delay * 1000)
+        else:
+            self.stop_watching()
+
+    def stop_watching(self):
+        """Dừng theo dõi"""
+        self.is_watching = False
+        self.start_btn.setText("Start Watching")
+        self.status.setText("Status: Stopped")
+        self.status.setStyleSheet("color: #e74c3c;")
+        if self.auto_commit_timer.isActive():
+            self.auto_commit_timer.stop()
 
     def toggle_auto_commit(self, state):
         """Bật/tắt auto commit"""
         self.auto_commit = bool(state)
-        if self.auto_commit:
+        if self.auto_commit and self.is_watching:
             self.auto_commit_timer.start(self.commit_delay * 1000)
             self.status.setText("Status: Auto Commit Enabled")
         else:
@@ -126,7 +160,7 @@ class MainWindow(QMainWindow):
     def change_commit_delay(self, value):
         """Thay đổi thời gian delay commit"""
         self.commit_delay = value
-        if self.auto_commit:
+        if self.auto_commit and self.auto_commit_timer.isActive():
             self.auto_commit_timer.setInterval(value * 1000)
 
     def auto_commit_changes(self):
@@ -137,7 +171,7 @@ class MainWindow(QMainWindow):
     def commit_changes(self):
         """Thực hiện commit các thay đổi"""
         if self.changes_to_commit:
-            self.status.setText("Status: Analyzing changes...")
+            self.status.setText("Status: Committing changes...")
             
             # Tạo commit messages thông minh
             commit_messages = self.commit_analyzer.generate_commit_messages()
@@ -162,10 +196,11 @@ class MainWindow(QMainWindow):
     def add_change(self, file_path: str, change_type: str, status: str = "pending"):
         """Thêm thay đổi vào bảng"""
         if status == "pending":
-            self.commit_analyzer.add_change(
-                file_path, 
-                ChangeType(change_type.lower())
-            )
+            self.changes_to_commit.append({
+                'file': file_path,
+                'type': change_type
+            })
+            self.commit_analyzer.add_change(file_path, ChangeType(change_type.lower()))
 
         row = self.table.rowCount()
         self.table.insertRow(row)
