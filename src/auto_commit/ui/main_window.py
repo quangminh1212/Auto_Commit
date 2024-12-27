@@ -33,108 +33,28 @@ class MainWindow(QMainWindow):
         self.auto_commit_timer = QTimer()
         self.auto_commit_timer.timeout.connect(self.auto_commit_changes)
 
-    def setup_ui(self):
-        """Thiết lập giao diện"""
-        self.setWindowTitle("Auto Commit")
-        self.setMinimumSize(1000, 700)
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1e1e1e;
-            }
-            QWidget {
-                background-color: transparent;
-                color: #ffffff;
-            }
-            QLabel {
-                color: #ffffff;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color: #2d5a88;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-width: 150px;
-            }
-            QPushButton:hover {
-                background-color: #366ba1;
-            }
-            QPushButton:pressed {
-                background-color: #244a70;
-            }
-            QPushButton:disabled {
-                background-color: #555555;
-            }
-            QTableWidget {
-                background-color: #252526;
-                border: 1px solid #3d3d3d;
-                border-radius: 5px;
-                gridline-color: #3d3d3d;
-                selection-background-color: #2d5a88;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #3d3d3d;
-            }
-            QHeaderView::section {
-                background-color: #2d2d2d;
-                padding: 8px;
-                border: none;
-                font-weight: bold;
-            }
-            QScrollBar:vertical {
-                background-color: #2d2d2d;
-                width: 12px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #3d3d3d;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #4d4d4d;
-            }
-        """)
-
-        # Widget chính với margins
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        # Header với logo và tiêu đề
-        header = QHBoxLayout()
-        title = QLabel("Auto Commit")
-        title.setStyleSheet("""
-            font-size: 28px;
-            font-weight: bold;
-            color: #3daee9;
-            padding: 10px;
-        """)
-        header.addWidget(title)
-        header.addStretch()
-        layout.addLayout(header)
-
-        # Settings panel với style mới
-        settings_panel = QWidget()
-        settings_panel.setStyleSheet("""
+    def setup_header(self, layout):
+        """Thiết lập phần header với settings"""
+        header = QWidget()
+        header.setStyleSheet("""
             QWidget {
                 background-color: #2d2d2d;
-                border-radius: 10px;
+                border-radius: 8px;
                 padding: 15px;
             }
+            QLabel {
+                color: #3daee9;
+                font-size: 24px;
+                font-weight: bold;
+            }
             QCheckBox {
-                color: white;
+                color: #ffffff;
                 font-size: 14px;
                 spacing: 8px;
             }
             QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
+                width: 20px;
+                height: 20px;
                 border-radius: 4px;
                 border: 2px solid #3daee9;
             }
@@ -143,65 +63,119 @@ class MainWindow(QMainWindow):
             }
             QSpinBox {
                 background-color: #363636;
-                color: white;
-                border: 2px solid #3daee9;
+                color: #ffffff;
+                border: 1px solid #3daee9;
                 border-radius: 4px;
                 padding: 5px;
-                min-width: 80px;
+                min-width: 60px;
+                max-width: 80px;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                border: none;
+                background: #404040;
+                width: 20px;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background: #505050;
+            }
+            .help-text {
+                color: #888888;
+                font-style: italic;
+                font-size: 12px;
             }
         """)
-        settings_layout = QVBoxLayout(settings_panel)
 
-        # Auto commit controls
+        header_layout = QVBoxLayout(header)
+        header_layout.setSpacing(10)
+
+        # Title và controls trong một hàng
+        title_row = QHBoxLayout()
+        
+        # Auto Commit controls
         controls = QHBoxLayout()
-        controls.setSpacing(20)
+        controls.setSpacing(15)
 
         self.auto_commit_checkbox = QCheckBox("Auto Commit")
         self.auto_commit_checkbox.setChecked(self.auto_commit)
         self.auto_commit_checkbox.stateChanged.connect(self.toggle_auto_commit)
+        controls.addWidget(self.auto_commit_checkbox)
 
-        delay_container = QHBoxLayout()
-        delay_label = QLabel("Commit Delay (seconds):")
+        # Delay settings với label
+        delay_widget = QWidget()
+        delay_layout = QHBoxLayout(delay_widget)
+        delay_layout.setContentsMargins(0, 0, 0, 0)
+        delay_layout.setSpacing(8)
+        
+        delay_label = QLabel("Commit Delay:")
+        delay_label.setStyleSheet("color: #ffffff; font-size: 14px;")
+        delay_layout.addWidget(delay_label)
+        
         self.delay_spinbox = QSpinBox()
         self.delay_spinbox.setRange(1, 3600)
         self.delay_spinbox.setValue(self.commit_delay)
+        self.delay_spinbox.setSuffix("s")
         self.delay_spinbox.valueChanged.connect(self.change_commit_delay)
+        delay_layout.addWidget(self.delay_spinbox)
         
-        delay_container.addWidget(delay_label)
-        delay_container.addWidget(self.delay_spinbox)
-        delay_container.addStretch()
-
-        controls.addWidget(self.auto_commit_checkbox)
-        controls.addLayout(delay_container)
+        controls.addWidget(delay_widget)
         controls.addStretch()
-        settings_layout.addLayout(controls)
+        
+        title_row.addLayout(controls)
+        header_layout.addLayout(title_row)
 
-        # Manual commit help
+        # Help text
         help_text = QLabel("Hold Alt for 1 second to commit manually")
         help_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        help_text.setStyleSheet("color: #888888; font-style: italic;")
-        settings_layout.addWidget(help_text)
+        help_text.setProperty("class", "help-text")
+        header_layout.addWidget(help_text)
 
-        layout.addWidget(settings_panel)
+        layout.addWidget(header)
 
-        # Status with icon
-        status_container = QHBoxLayout()
-        self.status = QLabel("Status: Idle")
-        self.status.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: #2d2d2d;
-        """)
-        status_container.addWidget(self.status)
-        status_container.addStretch()
+    def setup_ui(self):
+        """Thiết lập giao diện chính"""
+        self.setWindowTitle("Auto Commit")
+        self.setMinimumSize(800, 600)
         
-        # Start/Stop button với icon
+        # Widget chính
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(10)
+
+        # Thêm header
+        self.setup_header(layout)
+
+        # Status bar
+        status_bar = QWidget()
+        status_bar.setStyleSheet("""
+            QWidget {
+                background-color: #2d2d2d;
+                border-radius: 4px;
+                padding: 8px;
+            }
+            QLabel {
+                color: #ffffff;
+                font-size: 14px;
+            }
+        """)
+        
+        status_layout = QHBoxLayout(status_bar)
+        status_layout.setContentsMargins(10, 0, 10, 0)
+        
+        self.status = QLabel("Status: Idle")
+        status_layout.addWidget(self.status)
+        status_layout.addStretch()
+        
         self.start_btn = QPushButton("Start Watching")
         self.start_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2ecc71;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #27ae60;
@@ -214,37 +188,12 @@ class MainWindow(QMainWindow):
             }
         """)
         self.start_btn.clicked.connect(self.start_watching)
-        status_container.addWidget(self.start_btn)
+        status_layout.addWidget(self.start_btn)
         
-        layout.addLayout(status_container)
+        layout.addWidget(status_bar)
 
-        # Table với style mới
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Time", "Type", "File", "Status"])
-        
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        
-        self.table.verticalHeader().setVisible(False)
-        self.table.setAlternatingRowColors(True)
-        self.table.setStyleSheet("""
-            QTableWidget {
-                background-color: #252526;
-                alternate-background-color: #2d2d2d;
-            }
-            QTableWidget::item {
-                color: #ffffff;
-            }
-            QTableWidget::item:selected {
-                background-color: #2d5a88;
-            }
-        """)
-        
-        layout.addWidget(self.table)
+        # Table setup giữ nguyên như cũ
+        self.setup_table(layout)
 
     def start_watching(self):
         """Bắt đầu theo dõi"""
