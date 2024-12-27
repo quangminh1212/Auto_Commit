@@ -322,21 +322,9 @@ class CommitDetails:
     changes: List[str]
     impacts: List[str]
     notes: List[str]
-    breaking: bool = False
-
-class CommitAnalysis:
-    type: str
-    scope: str
-    subject: str
-    changes: List[str]
-    impacts: List[str]
-    notes: List[str]
     breaking: bool
-    importance: str
-    affected_areas: Set[str]
-    technical_details: Dict[str, any]
 
-class SmartCommitBuilder:
+class CommitMessageBuilder:
     def __init__(self):
         self.change_patterns = {
             'feat': {
@@ -394,7 +382,7 @@ class SmartCommitBuilder:
         # Tạo subject line thông minh
         subject = self._create_smart_subject(commit_type, files, types, tech_analysis)
         
-        # Phân tích chi tiết changes
+        # Phân tích chi ti���t changes
         detailed_changes = self._analyze_detailed_changes(files, types, tech_analysis)
         
         # Phân tích impacts

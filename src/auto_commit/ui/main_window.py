@@ -1,11 +1,11 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, 
                            QTableWidget, QTableWidgetItem, QLabel, QHeaderView,
                            QApplication, QHBoxLayout, QCheckBox, QSpinBox, QLineEdit)
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
-from auto_commit.core.git import CommitAnalyzer, ChangeType, CommitMessageBuilder
 from pathlib import Path
+from auto_commit.core.git import CommitMessageBuilder
 
 class MainWindow(QMainWindow): 
     def __init__(self, app: QApplication): 
