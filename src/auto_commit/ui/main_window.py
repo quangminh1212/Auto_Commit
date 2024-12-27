@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, 
                            QTableWidget, QTableWidgetItem, QLabel, QHeaderView,
-                           QApplication, QHBoxLayout, QCheckBox, QSpinBox, QLineEdit)
+                           QApplication, QHBoxLayout, QCheckBox, QSpinBox, QLineEdit,
+                           QMessageBox)
 from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
@@ -27,9 +28,14 @@ class MainWindow(QMainWindow):
         self.auto_commit_btn = None
         self.commit_all_btn = None
         
-        # Tạo QTimer
+        # Tạo QTimer cho auto commit
         self.auto_commit_timer = QTimer(self)
         self.auto_commit_timer.timeout.connect(self.commit_all_changes)
+        
+        # Tạo QTimer cho việc kiểm tra phím Alt
+        self.check_alt_timer = QTimer(self)
+        self.check_alt_timer.timeout.connect(self.check_alt_press)
+        self.check_alt_timer.start(100)  # Kiểm tra mỗi 100ms
         
         # Khởi tạo file watcher trước khi setup UI
         self.watcher = QFileSystemWatcher(self)
@@ -268,7 +274,7 @@ class MainWindow(QMainWindow):
             self.auto_commit_timer.setInterval(value * 1000)
 
     def auto_commit_changes(self):
-        """Tự động commit theo timer"""
+        """T�� động commit theo timer"""
         if self.auto_commit and self.changes_to_commit:
             self.commit_changes()
 
@@ -343,7 +349,7 @@ class MainWindow(QMainWindow):
         }
         
         for file_path, change_type in changes:
-            # Kiểm tra breaking changes
+            # Ki���m tra breaking changes
             if change_type == 'DELETED':
                 impact['breaking'] = True
             
@@ -560,10 +566,37 @@ class MainWindow(QMainWindow):
         super().keyReleaseEvent(event)
 
     def closeEvent(self, event):
-        """Xử lý đóng cửa sổ"""
-        self.check_alt_timer.stop()
-        self.auto_commit_timer.stop()
-        event.accept() 
+        """Xử lý khi đóng ứng dụng"""
+        try:
+            # Dừng các timers
+            if hasattr(self, 'auto_commit_timer'):
+                self.auto_commit_timer.stop()
+            
+            if hasattr(self, 'check_alt_timer'):
+                self.check_alt_timer.stop()
+            
+            # Dừng watching
+            if self.is_watching:
+                self.stop_watching()
+            
+            # Commit các thay đổi cuối cùng nếu có
+            if self.changes_to_commit:
+                reply = QMessageBox.question(
+                    self,
+                    'Uncommitted Changes',
+                    'There are uncommitted changes. Do you want to commit them before closing?',
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.commit_all_changes()
+            
+            event.accept()
+            
+        except Exception as e:
+            print(f"Close event error: {str(e)}")
+            event.accept()  # Vẫn đóng ứng dụng ngay cả khi có lỗi
 
     def setup_table(self, layout):
         """Thiết lập bảng theo dõi thay đổi"""
