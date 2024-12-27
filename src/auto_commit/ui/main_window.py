@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
 from auto_commit.core.git import CommitAnalyzer, ChangeType
+from pathlib import Path
 
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication): 
@@ -245,29 +246,227 @@ class MainWindow(QMainWindow):
             self.commit_changes()
 
     def commit_changes(self):
-        """Thực hiện commit các thay đổi"""
-        if self.changes_to_commit:
-            self.status.setText("Status: Committing changes...")
+        """Thực hiện commit với phân tích chi tiết"""
+        if not self.changes_to_commit:
+            return
+
+        try:
+            self.status.setText("Status: Analyzing changes...")
             
-            # Tạo commit messages thông minh
-            commit_messages = self.commit_analyzer.generate_commit_messages()
-            
-            # Hiển thị commit messages
-            for msg in commit_messages:
-                row = self.table.rowCount()
-                self.table.insertRow(row)
-                self.table.setItem(row, 0, QTableWidgetItem(datetime.now().strftime("%H:%M:%S")))
-                self.table.setItem(row, 1, QTableWidgetItem("COMMIT"))
-                self.table.setItem(row, 2, QTableWidgetItem(msg))
-                self.table.setItem(row, 3, QTableWidgetItem("committed"))
-            
-            # Cập nhật status các thay đổi
+            # Phân nhóm thay đổi theo loại file
+            changes_by_type = {}
             for change in self.changes_to_commit:
-                self.add_change(change['file'], change['type'], "committed")
-            
+                file_path = change['file']
+                change_type = change['type']
+                
+                # Phân tích extension và loại file
+                ext = Path(file_path).suffix.lower()
+                category = self._get_file_category(file_path, ext)
+                
+                if category not in changes_by_type:
+                    changes_by_type[category] = []
+                changes_by_type[category].append((file_path, change_type))
+
+            # Tạo commit message chi tiết cho từng nhóm
+            for category, changes in changes_by_type.items():
+                # Phân tích impact của thay đổi
+                impact = self._analyze_changes_impact(changes)
+                
+                # Tạo commit message
+                message = self._generate_detailed_commit_message(category, changes, impact)
+                
+                # Hiển thị commit message trong bảng
+                self._add_commit_entry(message, changes)
+                
+                # Cập nhật status các file đã commit
+                for file_path, _ in changes:
+                    self._update_file_status(file_path, "committed")
+
+            # Clear changes và cập nhật UI
             self.changes_to_commit.clear()
-            self.commit_analyzer.clear()
-            self.status.setText("Status: Changes committed")
+            self.status.setText("Status: Changes committed successfully")
+            
+        except Exception as e:
+            self.status.setText(f"Error: {str(e)}")
+            print(f"Commit error: {str(e)}")
+
+    def _get_file_category(self, file_path: str, ext: str) -> str:
+        """Phân loại file dựa trên extension và đường dẫn"""
+        # Source code
+        if ext in {'.py', '.js', '.ts', '.java', '.cpp', '.cs'}:
+            if 'test' in file_path.lower():
+                return 'test'
+            return 'source'
+            
+        # UI/Frontend
+        if ext in {'.html', '.css', '.scss', '.vue', '.jsx', '.tsx'}:
+            return 'ui'
+            
+        # Config files
+        if ext in {'.json', '.yaml', '.yml', '.toml', '.ini', '.env'}:
+            return 'config'
+            
+        # Documentation
+        if ext in {'.md', '.rst', '.txt', '.doc', '.pdf'}:
+            return 'docs'
+            
+        # Build/Deploy
+        if any(p in file_path for p in ['build', 'deploy', 'ci', 'docker']):
+            return 'build'
+            
+        return 'other'
+
+    def _analyze_changes_impact(self, changes: list) -> dict:
+        """Phân tích mức độ ảnh hưởng của các thay đổi"""
+        impact = {
+            'breaking': False,
+            'scope': set(),
+            'components': set(),
+            'dependencies_changed': False,
+            'security_related': False,
+            'database_changes': False,
+            'api_changes': False
+        }
+        
+        for file_path, change_type in changes:
+            # Kiểm tra breaking changes
+            if change_type == 'DELETED':
+                impact['breaking'] = True
+            
+            # Phân tích components
+            parts = Path(file_path).parts
+            if len(parts) > 1:
+                impact['components'].add(parts[0])
+            
+            # Kiểm tra dependencies
+            if any(dep in file_path for dep in [
+                'requirements.txt', 'package.json', 'go.mod', 'pom.xml'
+            ]):
+                impact['dependencies_changed'] = True
+            
+            # Kiểm tra security
+            if any(sec in file_path.lower() for sec in [
+                'security', 'auth', 'password', 'crypto', 'secret'
+            ]):
+                impact['security_related'] = True
+            
+            # Kiểm tra database
+            if any(db in file_path.lower() for db in [
+                'migration', 'schema', 'database', 'model'
+            ]):
+                impact['database_changes'] = True
+            
+            # Kiểm tra API
+            if any(api in file_path.lower() for api in [
+                'api', 'endpoint', 'route', 'controller'
+            ]):
+                impact['api_changes'] = True
+        
+        return impact
+
+    def _generate_detailed_commit_message(self, category: str, changes: list, impact: dict) -> str:
+        """Tạo commit message chi tiết"""
+        # Xác định commit type
+        commit_type = {
+            'source': 'feat' if any(t == 'CREATED' for _, t in changes) else 'fix',
+            'test': 'test',
+            'ui': 'style',
+            'config': 'chore',
+            'docs': 'docs',
+            'build': 'build'
+        }.get(category, 'chore')
+
+        # Tạo scope
+        scope = None
+        if impact['components']:
+            scope = ','.join(sorted(impact['components']))
+        elif category != 'other':
+            scope = category
+
+        # Tạo subject line
+        if len(changes) == 1:
+            file_path, change_type = changes[0]
+            action = {
+                'CREATED': 'add',
+                'MODIFIED': 'update',
+                'DELETED': 'remove'
+            }[change_type]
+            subject = f"{action} {Path(file_path).name}"
+        else:
+            subject = f"update {len(changes)} {category} files"
+
+        # Tạo message chính
+        message = f"{commit_type}"
+        if scope:
+            message += f"({scope})"
+        message += f": {subject}"
+
+        # Thêm body với chi tiết
+        body = []
+        
+        # Liệt kê các thay đổi
+        if len(changes) > 1:
+            body.append("\nChanges:")
+            for file_path, change_type in changes:
+                action = {
+                    'CREATED': 'Add',
+                    'MODIFIED': 'Update',
+                    'DELETED': 'Remove'
+                }[change_type]
+                body.append(f"- {action} {file_path}")
+
+        # Thêm impact analysis
+        impacts = []
+        if impact['breaking']:
+            impacts.append("BREAKING CHANGE: This includes file deletions")
+        if impact['dependencies_changed']:
+            impacts.append("Dependencies were modified")
+        if impact['security_related']:
+            impacts.append("Security-related changes")
+        if impact['database_changes']:
+            impacts.append("Database schema changes")
+        if impact['api_changes']:
+            impacts.append("API modifications")
+
+        if impacts:
+            body.append("\nImpact:")
+            body.extend(f"- {impact}" for impact in impacts)
+
+        if body:
+            message += '\n' + '\n'.join(body)
+
+        return message
+
+    def _add_commit_entry(self, message: str, changes: list):
+        """Thêm commit message vào bảng"""
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+        
+        time_item = QTableWidgetItem(datetime.now().strftime("%H:%M:%S"))
+        time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        type_item = QTableWidgetItem("COMMIT")
+        type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        type_item.setForeground(QColor("#2ecc71"))
+        
+        message_item = QTableWidgetItem(message)
+        status_item = QTableWidgetItem("committed")
+        status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.table.setItem(row, 0, time_item)
+        self.table.setItem(row, 1, type_item)
+        self.table.setItem(row, 2, message_item)
+        self.table.setItem(row, 3, status_item)
+        
+        self.table.scrollToBottom()
+
+    def _update_file_status(self, file_path: str, status: str):
+        """Cập nhật trạng thái của file trong bảng"""
+        for row in range(self.table.rowCount()):
+            if self.table.item(row, 2).text() == file_path:
+                status_item = QTableWidgetItem(status)
+                status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table.setItem(row, 3, status_item)
 
     def add_change(self, file_path: str, change_type: str, status: str = "pending"):
         """Thêm thay đổi vào bảng"""
