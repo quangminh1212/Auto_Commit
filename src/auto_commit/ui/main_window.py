@@ -176,8 +176,8 @@ class MainWindow(QMainWindow):
         
         # Setup header  
         self.setup_header(layout) 
-        
-        # Status bar   
+         
+        # Status bar     
         self.status = QLabel("Status: No changes to commit")
         self.status.setStyleSheet("""
             QLabel {

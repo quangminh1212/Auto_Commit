@@ -337,7 +337,7 @@ class CommitAnalyzer:
 
     def _analyze_detailed_changes(self, files: List[Path], types: List[str], 
                                 analysis: Dict) -> List[str]:
-        """Phân tích chi tiết từng thay đổi"""
+        """Ph��n tích chi tiết từng thay đổi"""
         changes = []
         for file, change_type in zip(files, types):
             action = {
@@ -468,19 +468,26 @@ class GitHandler:
             raise 
 
 @dataclass
-class CommitDetails:    
-    type: str
-    scope: str
-    subject: str
-    changes: List[str]
-    impacts: List[str]
-    notes: List[str]
-    breaking: bool
+class CommitDetails:
+    type: str = 'chore'  # Default values cho tất cả fields
+    scope: str = ''
+    subject: str = ''
+    changes: List[str] = None
+    impacts: List[str] = None
+    notes: List[str] = None
+    breaking: bool = False
     importance: str = 'minor'
     affected_areas: Set[str] = None
     technical_details: Dict = None
 
     def __post_init__(self):
+        # Khởi tạo các list rỗng thay vì None
+        if self.changes is None:
+            self.changes = []
+        if self.impacts is None:
+            self.impacts = []
+        if self.notes is None:
+            self.notes = []
         if self.affected_areas is None:
             self.affected_areas = set()
         if self.technical_details is None:
@@ -560,39 +567,67 @@ class CommitMessageBuilder:
 
     def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
         """Phân tích các thay đổi và tạo CommitDetails"""
-        files = [Path(f) for f, _ in changes]
-        types = [t for _, t in changes]
+        try:
+            if not changes:  # Kiểm tra danh sách changes có rỗng không
+                return CommitDetails(
+                    subject="update files",
+                    changes=["No detailed changes available"]
+                )
 
-        # Phân tích cơ bản
-        commit_type = self._determine_type(files, types)
-        scope = self._determine_scope(files)
-        subject = self._create_subject(files, types)
-        
-        # Tạo chi tiết changes
-        detailed_changes = [
-            f"{self._get_action_verb(t)} {f}" 
-            for f, t in changes
-        ]
+            files = [Path(str(f)) for f, _ in changes]  # Convert to Path objects safely
+            types = [str(t) for t in (t for _, t in changes)]  # Ensure types are strings
 
-        # Phân tích impacts
-        impacts = self._analyze_impacts(files, types)
+            # Phân tích cơ bản
+            commit_type = self._determine_type(files, types) or 'chore'
+            scope = self._determine_scope(files) or ''
+            subject = self._create_subject(files, types) or 'update files'
+            
+            # Tạo chi tiết changes với kiểm tra None
+            detailed_changes = []
+            for f, t in changes:
+                try:
+                    action = self._get_action_verb(t)
+                    detailed_changes.append(f"{action} {f}")
+                except Exception as e:
+                    print(f"Error processing change {f}: {e}")
+                    detailed_changes.append(f"Update {f}")
 
-        # Tạo notes
-        notes = self._create_notes(files)
+            # Phân tích impacts với xử lý ngoại lệ
+            try:
+                impacts = self._analyze_impacts(files, types)
+            except Exception as e:
+                print(f"Error analyzing impacts: {e}")
+                impacts = []
 
-        # Kiểm tra breaking changes
-        breaking = any('api' in str(f).lower() or 'interface' in str(f).lower() 
-                      for f in files)
+            # Tạo notes với xử lý ngoại lệ
+            try:
+                notes = self._create_notes(files)
+            except Exception as e:
+                print(f"Error creating notes: {e}")
+                notes = []
 
-        return CommitDetails(
-            type=commit_type,
-            scope=scope,
-            subject=subject,
-            changes=detailed_changes,
-            impacts=impacts,
-            notes=notes,
-            breaking=breaking
-        )
+            # Kiểm tra breaking changes
+            breaking = any('api' in str(f).lower() or 'interface' in str(f).lower() 
+                         for f in files)
+
+            # Tạo và trả về CommitDetails với các giá trị mặc định
+            return CommitDetails(
+                type=commit_type,
+                scope=scope,
+                subject=subject,
+                changes=detailed_changes or ["Update files"],
+                impacts=impacts or [],
+                notes=notes or [],
+                breaking=breaking
+            )
+
+        except Exception as e:
+            print(f"Error in analyze_changes: {e}")
+            # Trả về CommitDetails mặc định thay vì None
+            return CommitDetails(
+                subject="update files",
+                changes=["Error analyzing changes"]
+            )
 
     def _determine_type(self, files: List[Path], types: List[str]) -> str:
         """Xác định loại commit dựa trên các thay đổi"""
