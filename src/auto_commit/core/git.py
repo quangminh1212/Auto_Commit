@@ -323,6 +323,15 @@ class CommitDetails:
     impacts: List[str]
     notes: List[str]
     breaking: bool
+    importance: str = 'minor'
+    affected_areas: Set[str] = None
+    technical_details: Dict = None
+
+    def __post_init__(self):
+        if self.affected_areas is None:
+            self.affected_areas = set()
+        if self.technical_details is None:
+            self.technical_details = {}
 
 class CommitMessageBuilder:
     def __init__(self):
@@ -365,7 +374,7 @@ class CommitMessageBuilder:
             'dependencies': [r'requirements\.txt', r'package\.json', r'go\.mod']
         }
 
-    def analyze_changes(self, changes: List[tuple]) -> CommitAnalysis:
+    def analyze_changes(self, changes: List[tuple]) -> CommitDetails:
         """Phân tích sâu về các thay đổi để tạo commit thông minh"""
         files = [Path(f) for f, _ in changes]
         types = [t for _, t in changes]
@@ -382,7 +391,7 @@ class CommitMessageBuilder:
         # Tạo subject line thông minh
         subject = self._create_smart_subject(commit_type, files, types, tech_analysis)
         
-        # Phân tích chi ti���t changes
+        # Phân tích chi tiết changes
         detailed_changes = self._analyze_detailed_changes(files, types, tech_analysis)
         
         # Phân tích impacts
@@ -391,7 +400,7 @@ class CommitMessageBuilder:
         # Tạo technical notes
         notes = self._create_technical_notes(tech_analysis)
         
-        return CommitAnalysis(
+        return CommitDetails(
             type=commit_type,
             scope=scope,
             subject=subject,
@@ -455,7 +464,7 @@ class CommitMessageBuilder:
 
         return analysis
 
-    def build_message(self, analysis: CommitAnalysis) -> str:
+    def build_message(self, analysis: CommitDetails) -> str:
         """Tạo commit message chi tiết và có ý nghĩa"""
         # Header
         message = [f"{analysis.type}"]
