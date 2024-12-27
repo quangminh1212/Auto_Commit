@@ -84,7 +84,7 @@ class CommitAnalyzer:
         
         change = FileChange(
             path=path,  
-            type=change_type,
+            type=change_type, 
             time=datetime.now(),
             extension=path.suffix.lower(),
             is_test=(category == 'test'),
