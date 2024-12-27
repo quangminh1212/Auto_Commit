@@ -6,6 +6,7 @@ from PyQt6.QtGui import QColor, QKeyEvent
 from datetime import datetime
 from pathlib import Path
 from auto_commit.core.git import CommitMessageBuilder
+import re
 
 class MainWindow(QMainWindow): 
     def __init__(self):  # Bỏ tham số app
@@ -534,7 +535,7 @@ class MainWindow(QMainWindow):
         if not self.alt_press_time:
             return
             
-        # T��nh thời gian giữ phím Alt
+        # Tính thời gian giữ phím Alt
         duration = (datetime.now() - self.alt_press_time).total_seconds()
         
         # Nếu giữ đủ 1 giây và có thay đổi, thực hiện commit
@@ -646,3 +647,105 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.status.setText(f"Error: {str(e)}")
             print(f"Commit error: {str(e)}")
+
+    def on_file_changed(self, path: str):
+        """Xử lý khi file thay đổi"""
+        try:
+            file_path = Path(path)
+            
+            # Bỏ qua các file không cần theo dõi
+            if self._should_ignore_file(file_path):
+                return
+                
+            # Xác định loại thay đổi
+            change_type = self._determine_change_type(file_path)
+            
+            # Thêm vào danh sách changes
+            self.changes_to_commit.append({
+                'file': str(file_path),
+                'type': change_type,
+                'time': datetime.now()
+            })
+            
+            # Cập nhật UI
+            self._add_change_entry(str(file_path), change_type)
+            self.status.setText(f"Status: Detected change in {file_path.name}")
+            
+        except Exception as e:
+            self.status.setText(f"Error: {str(e)}")
+            print(f"File change error: {str(e)}")
+
+    def on_directory_changed(self, path: str):
+        """Xử lý khi thư mục thay đổi"""
+        try:
+            dir_path = Path(path)
+            
+            # Quét các file mới trong thư mục
+            for file_path in dir_path.glob('*'):
+                if not self._should_ignore_file(file_path):
+                    # Thêm file mới vào watcher
+                    self.watcher.addPath(str(file_path))
+                    
+            self.status.setText(f"Status: Directory {dir_path.name} updated")
+            
+        except Exception as e:
+            self.status.setText(f"Error: {str(e)}")
+            print(f"Directory change error: {str(e)}")
+
+    def _should_ignore_file(self, file_path: Path) -> bool:
+        """Kiểm tra có nên bỏ qua file không"""
+        ignore_patterns = [
+            r'\.git',
+            r'__pycache__',
+            r'\.pyc$',
+            r'\.pyo$',
+            r'\.pyd$',
+            r'\.so$',
+            r'\.dll$',
+            r'\.dylib$',
+            r'\.log$',
+            r'\.tmp$',
+            r'\.swp$'
+        ]
+        
+        file_str = str(file_path).lower()
+        return any(re.search(pattern, file_str) for pattern in ignore_patterns)
+
+    def _determine_change_type(self, file_path: Path) -> str:
+        """Xác định loại thay đổi của file"""
+        if not file_path.exists():
+            return 'DELETED'
+        elif str(file_path) not in [c['file'] for c in self.changes_to_commit]:
+            return 'CREATED'
+        else:
+            return 'MODIFIED'
+
+    def _add_change_entry(self, file_path: str, change_type: str):
+        """Thêm entry vào bảng changes"""
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+        
+        time_item = QTableWidgetItem(datetime.now().strftime("%H:%M:%S"))
+        time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        type_item = QTableWidgetItem(change_type)
+        type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Màu sắc theo loại thay đổi
+        if change_type == 'CREATED':
+            type_item.setForeground(QColor("#2ecc71"))  # Xanh lá
+        elif change_type == 'DELETED':
+            type_item.setForeground(QColor("#e74c3c"))  # Đỏ
+        else:
+            type_item.setForeground(QColor("#3498db"))  # Xanh dương
+        
+        file_item = QTableWidgetItem(file_path)
+        status_item = QTableWidgetItem("pending")
+        status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.table.setItem(row, 0, time_item)
+        self.table.setItem(row, 1, type_item)
+        self.table.setItem(row, 2, file_item)
+        self.table.setItem(row, 3, status_item)
+        
+        self.table.scrollToBottom()
