@@ -250,6 +250,157 @@ class CommitAnalyzer:
         """Xóa tất cả thay đổi đã phân tích"""
         self.changes.clear() 
 
+    def _determine_primary_type(self, files: List[Path], types: List[str]) -> str:
+        """Xác định loại commit chính dựa trên các thay đổi"""
+        content = ' '.join([str(f) for f in files] + types).lower()
+        
+        # Đếm số lần xuất hiện của mỗi loại
+        type_scores = {}
+        for commit_type, info in self.change_patterns.items():
+            score = sum(1 for pattern in info['patterns'] 
+                       if any(re.search(pattern, content)))
+            if score > 0:
+                type_scores[commit_type] = {
+                    'score': score,
+                    'importance': info['importance']
+                }
+        
+        if not type_scores:
+            return 'chore'
+            
+        # Ưu tiên theo importance và score
+        importance_levels = {
+            'critical': 4,
+            'major': 3,
+            'medium': 2,
+            'minor': 1
+        }
+        
+        return max(type_scores.items(),
+                  key=lambda x: (importance_levels[x[1]['importance']], 
+                               x[1]['score']))[0]
+
+    def _analyze_scope_and_areas(self, files: List[Path]) -> tuple[str, set]:
+        """Phân tích scope và areas bị ảnh hưởng"""
+        areas = set()
+        components = set()
+        
+        for file in files:
+            file_str = str(file).lower()
+            
+            # Xác định technical areas
+            for area, patterns in self.technical_areas.items():
+                if any(re.search(pattern, file_str) for pattern in patterns):
+                    areas.add(area)
+            
+            # Xác định components từ cấu trúc thư mục
+            if len(file.parts) > 1:
+                components.add(file.parts[0])
+        
+        # Xác định scope
+        if len(components) == 1:
+            scope = next(iter(components))
+        elif len(areas) == 1:
+            scope = next(iter(areas))
+        else:
+            scope = 'multi'
+            
+        return scope, areas
+
+    def _create_smart_subject(self, commit_type: str, files: List[Path], 
+                            types: List[str], analysis: Dict) -> str:
+        """Tạo subject line thông minh"""
+        if len(files) == 1:
+            file = files[0]
+            action = 'add' if 'CREATED' in types else \
+                    'remove' if 'DELETED' in types else 'update'
+            
+            if analysis['importance'] == 'critical':
+                return f"{action} critical {file.name}"
+            return f"{action} {file.name}"
+        
+        # Nhóm theo loại file
+        file_types = set()
+        for file in files:
+            for area, patterns in self.technical_areas.items():
+                if any(re.search(pattern, str(file)) for pattern in patterns):
+                    file_types.add(area)
+                    break
+        
+        if len(file_types) == 1:
+            area = next(iter(file_types))
+            return f"update {len(files)} {area} files"
+            
+        return f"update {len(files)} files across {len(file_types)} areas"
+
+    def _analyze_detailed_changes(self, files: List[Path], types: List[str], 
+                                analysis: Dict) -> List[str]:
+        """Phân tích chi tiết từng thay đổi"""
+        changes = []
+        for file, change_type in zip(files, types):
+            action = {
+                'CREATED': 'Add',
+                'MODIFIED': 'Update',
+                'DELETED': 'Remove'
+            }[change_type]
+            
+            # Thêm context
+            context = []
+            file_str = str(file).lower()
+            
+            for area, patterns in self.technical_areas.items():
+                if any(re.search(pattern, file_str) for pattern in patterns):
+                    context.append(area)
+            
+            if context:
+                changes.append(f"{action} {file} ({', '.join(context)})")
+            else:
+                changes.append(f"{action} {file}")
+        
+        return changes
+
+    def _analyze_impacts(self, analysis: Dict) -> List[str]:
+        """Phân tích impacts của các thay đổi"""
+        impacts = []
+        
+        if analysis['has_breaking_changes']:
+            impacts.append("Breaking changes detected - requires attention")
+            
+        if analysis['security_impact']:
+            impacts.append("Security-related changes - review required")
+            
+        if analysis['database_changes']:
+            impacts.append("Database changes - migration may be needed")
+            
+        if analysis['dependencies_changed']:
+            impacts.append("Dependencies modified - update required")
+            
+        if analysis['performance_impact']:
+            impacts.append("Performance impact - testing recommended")
+            
+        if analysis['api_changes']:
+            impacts.append("API changes - update documentation")
+            
+        return impacts
+
+    def _create_technical_notes(self, analysis: Dict) -> List[str]:
+        """Tạo technical notes cho commit"""
+        notes = []
+        
+        if analysis['testing_required']:
+            notes.append("Run full test suite")
+            
+        if analysis['review_priority'] == 'high':
+            notes.append("High-priority review required")
+            
+        if analysis['complexity'] == 'high':
+            notes.append("Complex changes - careful review needed")
+            
+        if analysis['risk_level'] == 'high':
+            notes.append("High-risk changes - thorough testing required")
+            
+        return notes
+
 class GitHandler:
     def __init__(self, repo_path: str, github_token: Optional[str] = None):
         self.repo_path = Path(repo_path)
