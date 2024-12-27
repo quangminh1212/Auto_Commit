@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
 
         # Khởi tạo UI và timers  
         self.setup_ui()
-        self.init_timers()
+        self.init_timers()   
 
     def init_timers(self):
         """Khởi tạo các timers"""
