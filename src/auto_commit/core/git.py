@@ -82,7 +82,7 @@ class CommitAnalyzer:
         path = Path(file_path)
         category = self._get_file_category(str(path)) 
         
-        change = FileChange( 
+        change = FileChange(  
             path=path,  
             type=change_type, 
             time=datetime.now(),
