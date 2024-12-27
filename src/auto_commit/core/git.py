@@ -4,6 +4,8 @@ from datetime import datetime
 import re
 from dataclasses import dataclass
 from enum import Enum
+from git import Repo
+from github import Github
 
 class ChangeType(Enum):
     CREATED = "created"
@@ -157,3 +159,67 @@ class CommitAnalyzer:
     def clear(self):
         """Xóa tất cả thay đổi đã phân tích"""
         self.changes.clear() 
+
+class GitHandler:
+    def __init__(self, repo_path: str, github_token: Optional[str] = None):
+        self.repo_path = Path(repo_path)
+        self.repo = Repo(self.repo_path)
+        self.github = Github(github_token) if github_token else None
+        self.analyzer = CommitAnalyzer()
+        
+    def handle_change(self, file_path: str, change_type: str) -> None:
+        """Xử lý thay đổi file và tạo commits"""
+        try:
+            relative_path = Path(file_path).relative_to(self.repo_path)
+            
+            # Skip git và cache files
+            if self._should_ignore(relative_path):
+                return
+
+            # Thêm vào analyzer
+            self.analyzer.add_change(str(relative_path), ChangeType(change_type))
+
+            # Add hoặc remove file từ git
+            if change_type != "deleted":
+                self.repo.index.add([str(relative_path)])
+            else:
+                self.repo.index.remove([str(relative_path)])
+
+            # Tạo commit messages thông minh
+            commit_messages = self.analyzer.generate_commit_messages()
+            
+            # Tạo commits
+            for message in commit_messages:
+                self.repo.index.commit(message)
+            
+            # Push nếu có GitHub token
+            if self.github:
+                self._push_changes()
+                
+            # Clear analyzer
+            self.analyzer.clear()
+                
+        except Exception as e:
+            print(f"Git operation failed: {str(e)}")
+            raise
+
+    def _should_ignore(self, file_path: Path) -> bool:
+        """Kiểm tra file có nên bỏ qua không"""
+        ignore_patterns = [
+            ".git",
+            "__pycache__",
+            ".pyc",
+            ".swp",
+            ".vscode",
+            ".idea"
+        ]
+        return any(pattern in str(file_path) for pattern in ignore_patterns)
+
+    def _push_changes(self) -> None:
+        """Push changes lên remote repository"""
+        try:
+            origin = self.repo.remote("origin")
+            origin.push()
+        except Exception as e:
+            print(f"Failed to push changes: {str(e)}")
+            raise 
