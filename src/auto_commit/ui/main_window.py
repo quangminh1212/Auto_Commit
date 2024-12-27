@@ -8,20 +8,27 @@ from pathlib import Path
 from auto_commit.core.git import CommitMessageBuilder
 
 class MainWindow(QMainWindow): 
-    def __init__(self, app: QApplication): 
+    def __init__(self):  # Bỏ tham số app
         super().__init__()
-        # Khởi tạo các thuộc tính
-        self.app = app
+        self.setWindowTitle("Auto Commit")
+        
+        # Khởi tạo các biến
         self.auto_commit = False
         self.commit_delay = 30
         self.changes_to_commit = []
         self.alt_press_time = None
-        self.is_watching = False
-        self.commit_analyzer = CommitAnalyzer()
-
-        # Khởi tạo UI và timers  
-        self.setup_ui()      
-        self.init_timers()   
+        
+        # Tạo QTimer
+        self.auto_commit_timer = QTimer(self)
+        self.auto_commit_timer.timeout.connect(self.commit_all_changes)
+        
+        # Setup UI
+        self.setup_ui()
+        
+        # Khởi tạo file watcher
+        self.watcher = QFileSystemWatcher(self)
+        self.watcher.fileChanged.connect(self.on_file_changed)
+        self.watcher.directoryChanged.connect(self.on_directory_changed)
 
     def init_timers(self):
         """Khởi tạo các timers"""
@@ -146,7 +153,6 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         """Thiết lập giao diện chính"""
-        self.setWindowTitle("Auto Commit")
         self.setMinimumSize(800, 600)
         
         # Widget chính
@@ -528,7 +534,7 @@ class MainWindow(QMainWindow):
         if not self.alt_press_time:
             return
             
-        # Tính thời gian giữ phím Alt
+        # T��nh thời gian giữ phím Alt
         duration = (datetime.now() - self.alt_press_time).total_seconds()
         
         # Nếu giữ đủ 1 giây và có thay đổi, thực hiện commit

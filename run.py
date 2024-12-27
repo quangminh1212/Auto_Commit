@@ -6,8 +6,6 @@ from auto_commit.core.git import CommitMessageBuilder
 def main():
     app = QApplication(sys.argv)
     
-    # Sử dụng CommitMessageBuilder thay vì CommitAnalyzer
-    commit_builder = CommitMessageBuilder()
     window = MainWindow()
     window.show()
     
