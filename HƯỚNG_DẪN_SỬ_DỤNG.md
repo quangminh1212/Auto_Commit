@@ -150,7 +150,6 @@ Script này sẽ:
 - `package-extension.bat`: Đóng gói extension thành file VSIX
 - `build-installer.bat`: Tạo file cài đặt EXE
 - `quick-install.bat`: Cài đặt extension một cách nhanh chóng
-- `run-extension.bat`: Chạy extension
 - `debug-extension.bat`: Chạy extension trong chế độ debug
 - `uninstall-extension.bat`: Gỡ cài đặt extension
 - `install-extension.bat`: Cài đặt extension từ file VSIX
