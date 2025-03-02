@@ -1,3 +1,5 @@
+# Auto Commit - Tự động tạo commit message bằng Gemini API
+# Phiên bản: 1.0.1 - Cập nhật ngày 02/03/2025
 import os
 import sys
 import json
