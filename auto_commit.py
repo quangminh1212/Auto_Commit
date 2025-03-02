@@ -27,7 +27,7 @@ API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:ge
 MAX_DIFF_SIZE = 3000
 
 # Biến toàn cục để kiểm soát chế độ mô phỏng
-SIMULATION_MODE = True  # Đã thay đổi thành True để chạy ở chế độ mô phỏng
+SIMULATION_MODE = False  # Đã đặt lại thành False để sử dụng thực tế
 
 def check_git_installed():
     """Kiểm tra xem Git đã được cài đặt chưa"""
