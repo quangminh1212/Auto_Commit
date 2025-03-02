@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 import threading
 import subprocess
+import logging
 from typing import Dict, Any, Optional, List, Callable
 
 # Import các hàm từ auto_commit.py
@@ -146,6 +147,10 @@ class AutoCommitGUI:
         # Tạo giao diện
         self.create_widgets()
         self.center_window()
+        
+        # Hiển thị dialog cài đặt khi khởi động nếu API key chưa được cấu hình
+        if API_KEY == "YOUR_GEMINI_API_KEY" or API_KEY == "":
+            self.open_settings()
         
         # Kiểm tra Git
         self.check_git()
