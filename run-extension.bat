@@ -1,24 +1,51 @@
 @echo off
-echo Script de chay extension Auto Commit voi Copilot
+echo Chuẩn bị chạy extension Auto Commit với Copilot...
 echo.
 
-rem Di chuyen den thu muc extension
-cd extension
+REM Kiểm tra xem VS Code đã được cài đặt chưa
+where code >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo VS Code không được tìm thấy. Vui lòng cài đặt VS Code trước.
+    echo Bạn có thể tải VS Code từ: https://code.visualstudio.com/download
+    pause
+    exit /b 1
+)
 
-rem Bien dich TypeScript
-echo Dang bien dich TypeScript...
-call npm run compile
+REM Kiểm tra xem VSIX file đã tồn tại chưa
+if not exist "extension\auto-commit-copilot-0.0.1.vsix" (
+    echo VSIX file không tồn tại. Đang tạo VSIX file...
+    call package-extension.bat
+    if %ERRORLEVEL% NEQ 0 (
+        echo Không thể tạo VSIX file. Vui lòng thử lại sau.
+        pause
+        exit /b 1
+    )
+)
 
-rem Dong goi extension
-echo Dang dong goi extension...
-call npx @vscode/vsce package
+REM Cài đặt extension
+echo Đang cài đặt extension...
+code --install-extension "extension\auto-commit-copilot-0.0.1.vsix"
+if %ERRORLEVEL% NEQ 0 (
+    echo Không thể cài đặt extension. Vui lòng thử lại sau.
+    pause
+    exit /b 1
+)
 
 echo.
-echo Huong dan cai dat:
-echo 1. Mo VS Code
-echo 2. Nhan F1 hoac Ctrl+Shift+P de mo Command Palette
-echo 3. Go "Extensions: Install from VSIX" va chon file VSIX vua tao
-echo 4. Sau khi cai dat, su dung phim tat Ctrl+Alt+C hoac menu ngu canh de chay lenh Auto Commit voi Copilot
+echo Extension đã được cài đặt thành công!
+echo Vui lòng khởi động lại VS Code nếu nó đang chạy.
+echo.
+echo Để sử dụng extension:
+echo 1. Thực hiện các thay đổi trong dự án của bạn
+echo 2. Stage các thay đổi bạn muốn commit
+echo 3. Nhấn Ctrl+Space để tự động tạo commit message và thực hiện commit
+echo.
 
-rem Tro ve thu muc goc
-cd .. 
+REM Hỏi người dùng có muốn mở VS Code không
+set /p openVSCode=Bạn có muốn mở VS Code không? (y/n): 
+if /i "%openVSCode%"=="y" (
+    echo Đang mở VS Code...
+    code
+)
+
+pause 
