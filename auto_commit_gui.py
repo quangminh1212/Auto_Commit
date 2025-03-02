@@ -191,7 +191,7 @@ THEMES = {
         "text_fg": "#ffffff",  # Chữ trong text widget trắng
         "button_bg": "#3d3d3d",  # Nền nút tối
         "button_fg": "#ffffff",  # Chữ trên nút trắng
-        "highlight_bg": "#4d4d4d",  # Nền highlight tối
+        "highlight_bg": "#0078d4",  # Màu highlight xanh đậm
         "highlight_fg": "#ffffff",  # Chữ highlight trắng
         "tooltip_bg": "#4d4d4d",  # Nền tooltip tối
         "tooltip_fg": "#ffffff"  # Chữ tooltip trắng
