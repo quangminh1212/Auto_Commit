@@ -428,10 +428,21 @@ class AutoCommitGUI:
     
     def generate_message(self):
         """Tạo commit message bằng API Gemini"""
+        # Kiểm tra API key
+        if not self.settings["api_key"] or self.settings["api_key"] == "YOUR_GEMINI_API_KEY":
+            messagebox.showerror("Lỗi", "API key chưa được cấu hình. Vui lòng cấu hình API key trong phần Cài đặt.")
+            self.open_settings()
+            return
+        
         # Kiểm tra xem có file nào được staged không
-        diff_info = get_git_diff()
-        if not diff_info:
-            messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+        try:
+            diff_info = get_git_diff()
+            if not diff_info:
+                messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+                return
+        except Exception as e:
+            logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
+            messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
             return
         
         # Cập nhật trạng thái
@@ -454,6 +465,7 @@ class AutoCommitGUI:
                 # Cập nhật trạng thái
                 self.status_var.set("Đã tạo commit message")
             except Exception as e:
+                logger.error(f"Lỗi khi tạo commit message: {str(e)}")
                 messagebox.showerror("Lỗi", f"Lỗi khi tạo commit message: {str(e)}")
                 self.status_var.set("Lỗi")
         
@@ -466,6 +478,18 @@ class AutoCommitGUI:
         if not commit_message:
             messagebox.showinfo("Thông báo", "Vui lòng nhập commit message.")
             return
+        
+        # Kiểm tra xem có file nào được staged không
+        try:
+            diff_info = get_git_diff()
+            if not diff_info and not self.settings["simulation_mode"]:
+                messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+                return
+        except Exception as e:
+            if not self.settings["simulation_mode"]:
+                logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
+                messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
+                return
         
         # Cập nhật trạng thái
         self.status_var.set("Đang commit...")
@@ -493,13 +517,19 @@ class AutoCommitGUI:
                 # Push nếu được chọn
                 if self.auto_push.get():
                     self.status_var.set("Đang push...")
-                    success = push_to_remote()
-                    if success:
-                        self.status_var.set("Đã push thành công")
-                    else:
-                        messagebox.showerror("Lỗi", "Không thể push lên remote repository.")
+                    try:
+                        success = push_to_remote()
+                        if success:
+                            self.status_var.set("Đã push thành công")
+                        else:
+                            messagebox.showerror("Lỗi", "Không thể push lên remote repository.")
+                            self.status_var.set("Lỗi khi push")
+                    except Exception as e:
+                        logger.error(f"Lỗi khi push: {str(e)}")
+                        messagebox.showerror("Lỗi", f"Lỗi khi push: {str(e)}")
                         self.status_var.set("Lỗi khi push")
             except Exception as e:
+                logger.error(f"Lỗi khi commit: {str(e)}")
                 messagebox.showerror("Lỗi", f"Lỗi khi commit: {str(e)}")
                 self.status_var.set("Lỗi")
         
