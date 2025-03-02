@@ -149,3 +149,16 @@ Traceback (most recent call last):
     return codecs.charmap_decode(input,self.errors,decoding_table)[0]
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 UnicodeDecodeError: 'charmap' codec can't decode byte 0x8f in position 2323: character maps to <undefined>
+2025-03-02 10:23:02,190 - INFO - Bat dau qua trinh auto commit...
+2025-03-02 10:23:02,260 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\VF\\Auto_Commit", "git_version": "git version 2.46.2.windows.1"}
+2025-03-02 10:23:02,316 - INFO - Khong co file nao duoc staged.
+2025-03-02 10:23:02,316 - INFO - Khong co thay doi nao de commit.
+2025-03-02 10:23:34,868 - INFO - Bat dau qua trinh auto commit...
+2025-03-02 10:23:34,926 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\VF\\Auto_Commit", "git_version": "git version 2.46.2.windows.1"}
+2025-03-02 10:23:35,008 - INFO - Dang goi API Gemini de tao commit message...
+2025-03-02 10:23:37,483 - INFO - Da tao commit message thanh cong.
+2025-03-02 10:23:37,483 - INFO - Dang tao commit...
+2025-03-02 10:23:37,547 - INFO - Da tao commit thanh cong voi message:
+feat(auto-commit): Thêm tính năng tự động tạo commit message bằng Gemini API
+
+Cập nhật phiên bản lên 1.0.1.
