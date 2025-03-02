@@ -22,12 +22,34 @@ if %ERRORLEVEL% NEQ 0 (
     echo Admin rights confirmed >> setup_log.txt
 )
 
-REM Check if VS Code is installed
+REM Check if VS Code is installed - with timeout
 echo Checking if VS Code is installed...
 echo Checking if VS Code is installed... >> setup_log.txt
-where code >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo VS Code not found. Error code: %ERRORLEVEL% >> setup_log.txt
+
+REM Use a temporary file to store the result
+echo @echo off > check_vscode.bat
+echo where code ^>nul 2^>^&1 >> check_vscode.bat
+echo echo %%ERRORLEVEL%% ^> vscode_result.txt >> check_vscode.bat
+
+REM Run the check with a timeout
+start /wait /b cmd /c check_vscode.bat
+timeout /t 5 /nobreak > nul
+
+REM Check if the result file exists
+if not exist vscode_result.txt (
+    echo VS Code check timed out >> setup_log.txt
+    echo VS Code check timed out. Assuming VS Code is not installed.
+    set VSCODE_CHECK=1
+) else (
+    set /p VSCODE_CHECK=<vscode_result.txt
+    del vscode_result.txt
+)
+
+REM Clean up
+del check_vscode.bat
+
+if %VSCODE_CHECK% NEQ 0 (
+    echo VS Code not found. Error code: %VSCODE_CHECK% >> setup_log.txt
     echo VS Code not found. Please install VS Code first.
     echo Do you want to download VS Code? (Y/N)
     set /p download_vscode=
@@ -46,12 +68,34 @@ if %ERRORLEVEL% NEQ 0 (
     echo VS Code found >> setup_log.txt
 )
 
-REM Check if Node.js is installed
+REM Check if Node.js is installed - with timeout
 echo Checking if Node.js is installed...
 echo Checking if Node.js is installed... >> setup_log.txt
-where node >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo Node.js not found. Error code: %ERRORLEVEL% >> setup_log.txt
+
+REM Use a temporary file to store the result
+echo @echo off > check_node.bat
+echo where node ^>nul 2^>^&1 >> check_node.bat
+echo echo %%ERRORLEVEL%% ^> node_result.txt >> check_node.bat
+
+REM Run the check with a timeout
+start /wait /b cmd /c check_node.bat
+timeout /t 5 /nobreak > nul
+
+REM Check if the result file exists
+if not exist node_result.txt (
+    echo Node.js check timed out >> setup_log.txt
+    echo Node.js check timed out. Assuming Node.js is not installed.
+    set NODE_CHECK=1
+) else (
+    set /p NODE_CHECK=<node_result.txt
+    del node_result.txt
+)
+
+REM Clean up
+del check_node.bat
+
+if %NODE_CHECK% NEQ 0 (
+    echo Node.js not found. Error code: %NODE_CHECK% >> setup_log.txt
     echo Node.js not found. Node.js is required.
     echo Do you want to download Node.js? (Y/N)
     set /p download_node=
@@ -68,15 +112,37 @@ if %ERRORLEVEL% NEQ 0 (
     )
 ) else (
     echo Node.js found >> setup_log.txt
-    node --version >> setup_log.txt
+    node --version >> setup_log.txt 2>nul
 )
 
-REM Check if npm is installed
+REM Check if npm is installed - with timeout
 echo Checking if npm is installed...
 echo Checking if npm is installed... >> setup_log.txt
-where npm >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo npm not found. Error code: %ERRORLEVEL% >> setup_log.txt
+
+REM Use a temporary file to store the result
+echo @echo off > check_npm.bat
+echo where npm ^>nul 2^>^&1 >> check_npm.bat
+echo echo %%ERRORLEVEL%% ^> npm_result.txt >> check_npm.bat
+
+REM Run the check with a timeout
+start /wait /b cmd /c check_npm.bat
+timeout /t 5 /nobreak > nul
+
+REM Check if the result file exists
+if not exist npm_result.txt (
+    echo npm check timed out >> setup_log.txt
+    echo npm check timed out. Assuming npm is not installed.
+    set NPM_CHECK=1
+) else (
+    set /p NPM_CHECK=<npm_result.txt
+    del npm_result.txt
+)
+
+REM Clean up
+del check_npm.bat
+
+if %NPM_CHECK% NEQ 0 (
+    echo npm not found. Error code: %NPM_CHECK% >> setup_log.txt
     echo npm not found. Node.js is required.
     echo Do you want to download Node.js? (Y/N)
     set /p download_npm=
@@ -93,15 +159,37 @@ if %ERRORLEVEL% NEQ 0 (
     )
 ) else (
     echo npm found >> setup_log.txt
-    npm --version >> setup_log.txt
+    npm --version >> setup_log.txt 2>nul
 )
 
-REM Check if Inno Setup is installed
+REM Check if Inno Setup is installed - with timeout
 echo Checking if Inno Setup is installed...
 echo Checking if Inno Setup is installed... >> setup_log.txt
-where iscc >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo Inno Setup not found. Error code: %ERRORLEVEL% >> setup_log.txt
+
+REM Use a temporary file to store the result
+echo @echo off > check_inno.bat
+echo where iscc ^>nul 2^>^&1 >> check_inno.bat
+echo echo %%ERRORLEVEL%% ^> inno_result.txt >> check_inno.bat
+
+REM Run the check with a timeout
+start /wait /b cmd /c check_inno.bat
+timeout /t 5 /nobreak > nul
+
+REM Check if the result file exists
+if not exist inno_result.txt (
+    echo Inno Setup check timed out >> setup_log.txt
+    echo Inno Setup check timed out. Assuming Inno Setup is not installed.
+    set INNO_CHECK=1
+) else (
+    set /p INNO_CHECK=<inno_result.txt
+    del inno_result.txt
+)
+
+REM Clean up
+del check_inno.bat
+
+if %INNO_CHECK% NEQ 0 (
+    echo Inno Setup not found. Error code: %INNO_CHECK% >> setup_log.txt
     echo Inno Setup not found. Inno Setup is required to create the installer.
     echo Do you want to download Inno Setup? (Y/N)
     set /p download_inno=
@@ -265,4 +353,4 @@ echo.
 echo Thank you for using Auto Commit with Copilot!
 echo If you encountered any issues, please check the setup_log.txt file for details.
 echo.
-pause 
+pause
