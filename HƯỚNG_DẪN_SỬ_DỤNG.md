@@ -15,6 +15,19 @@ Trước khi bắt đầu, bạn cần cài đặt các công cụ cần thiết
    - Hướng dẫn cài đặt Inno Setup (nếu chưa có)
    - Cài đặt dependencies cho extension
 
+## Cài đặt nhanh
+
+Để cài đặt extension một cách nhanh chóng, chạy file `quick-install.bat`:
+
+```
+.\quick-install.bat
+```
+
+Script này sẽ:
+1. Kiểm tra xem VS Code đã được cài đặt chưa
+2. Tạo file VSIX nếu cần
+3. Cài đặt extension vào VS Code
+
 ## Đóng gói extension
 
 Có hai cách để đóng gói extension:
@@ -39,20 +52,27 @@ File EXE sẽ được tạo tại: `Auto-Commit-Installer.exe`
 
 ## Cài đặt extension
 
-Có ba cách để cài đặt extension:
+Có bốn cách để cài đặt extension:
 
-### Cách 1: Từ file VSIX
+### Cách 1: Cài đặt nhanh
+
+Chạy file `quick-install.bat` để cài đặt extension một cách nhanh chóng:
+```
+.\quick-install.bat
+```
+
+### Cách 2: Từ file VSIX
 
 1. Mở VS Code
 2. Nhấn F1 hoặc Ctrl+Shift+P để mở Command Palette
 3. Gõ "Extensions: Install from VSIX" và chọn file VSIX đã tạo
 
-### Cách 2: Từ file EXE
+### Cách 3: Từ file EXE
 
 1. Chạy file `Auto-Commit-Installer.exe`
 2. Làm theo hướng dẫn trên màn hình để cài đặt extension
 
-### Cách 3: Từ Command Line
+### Cách 4: Từ Command Line
 
 Chạy lệnh sau để cài đặt extension:
 ```
@@ -70,6 +90,15 @@ code --install-extension extension\auto-commit-copilot-0.0.1.vsix
 
 ## Gỡ cài đặt extension
 
+### Cách 1: Sử dụng script
+
+Chạy file `uninstall-extension.bat` để gỡ cài đặt extension:
+```
+.\uninstall-extension.bat
+```
+
+### Cách 2: Từ VS Code
+
 1. Mở VS Code
 2. Nhấn Ctrl+Shift+X để mở Extensions view
 3. Tìm "Auto Commit với Copilot" trong danh sách các extension đã cài đặt
@@ -77,13 +106,45 @@ code --install-extension extension\auto-commit-copilot-0.0.1.vsix
 
 ## Phát triển extension
 
-Nếu bạn muốn phát triển extension:
+### Chạy extension trong chế độ debug
+
+Để chạy extension trong chế độ debug, chạy file `debug-extension.bat`:
+
+```
+.\debug-extension.bat
+```
+
+Script này sẽ:
+1. Biên dịch TypeScript
+2. Mở VS Code với extension trong chế độ debug
+3. Bạn có thể nhấn F5 trong VS Code để bắt đầu debug extension
+
+### Chỉnh sửa mã nguồn
 
 1. Mở thư mục extension trong VS Code:
    ```
    code extension
    ```
-
 2. Chỉnh sửa mã nguồn trong thư mục `src`
+3. Biên dịch TypeScript bằng cách chạy `npm run compile` hoặc nhấn Ctrl+Shift+B
+4. Chạy extension trong chế độ debug bằng cách nhấn F5
 
-3. Nhấn F5 để chạy extension trong chế độ debug 
+## Các file script
+
+- `setup-tools.bat`: Cài đặt tất cả các công cụ cần thiết
+- `package-extension.bat`: Đóng gói extension thành file VSIX
+- `build-installer.bat`: Tạo file cài đặt EXE
+- `quick-install.bat`: Cài đặt extension một cách nhanh chóng
+- `run-extension.bat`: Chạy extension
+- `debug-extension.bat`: Chạy extension trong chế độ debug
+- `uninstall-extension.bat`: Gỡ cài đặt extension
+- `install-extension.bat`: Cài đặt extension từ file VSIX
+
+## Cấu trúc dự án
+
+- `extension/`: Thư mục chứa mã nguồn của extension
+  - `src/`: Mã nguồn TypeScript
+  - `package.json`: Cấu hình extension
+- `scripts/`: Thư mục chứa các script PowerShell
+- `create-installer.iss`: File cấu hình Inno Setup để tạo file cài đặt EXE
+- `*.bat`: Các file batch để tự động hóa các tác vụ 
