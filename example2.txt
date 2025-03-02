@@ -1,0 +1,9 @@
+Đây là file mẫu thứ hai để thử nghiệm Auto Commit.
+Chúng ta sẽ sử dụng file này để kiểm tra chức năng tự động commit.
+
+Các chức năng mới đã thêm vào Auto Commit:
+1. Tự động tạo commit message khi chuyển đến tab Commit
+2. Tự động commit khi nhấn Ctrl+Enter trong ô commit message
+3. Nút "Tự động commit" để tạo commit message và commit ngay lập tức
+4. Tooltip hiển thị thông tin khi di chuột qua các nút
+5. Thông báo trạng thái hiển thị ở thanh trạng thái 
