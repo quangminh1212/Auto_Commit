@@ -648,7 +648,7 @@ class AutoCommitGUI:
                         encoding='utf-8'
                     ).strip()
                 except Exception:
-                    branch = "Không xác định"
+                    branch = self.texts["branch_unknown"]
                 
                 # Lấy thông tin remote
                 try:
@@ -658,9 +658,9 @@ class AutoCommitGUI:
                         encoding='utf-8'
                     ).strip()
                     if not remote:
-                        remote = "Không có remote"
+                        remote = self.texts["no_remote"]
                 except Exception:
-                    remote = "Không có remote hoặc lỗi khi lấy thông tin"
+                    remote = self.texts["remote_error"]
                 
                 # Lấy thông tin commit gần nhất
                 try:
@@ -670,44 +670,44 @@ class AutoCommitGUI:
                         encoding='utf-8'
                     ).strip()
                     if not last_commit:
-                        last_commit = "Chưa có commit nào"
+                        last_commit = self.texts["no_commits"]
                 except Exception:
-                    last_commit = "Chưa có commit nào hoặc lỗi khi lấy thông tin"
+                    last_commit = self.texts["commits_error"]
                 
-                self.git_info_text.insert(tk.END, f"Branch hiện tại: {branch}\n\n")
-                self.git_info_text.insert(tk.END, f"Remote:\n{remote}\n\n")
-                self.git_info_text.insert(tk.END, f"Commit gần nhất: {last_commit}")
+                self.git_info_text.insert(tk.END, f"{self.texts['branch_current']} {branch}\n\n")
+                self.git_info_text.insert(tk.END, f"{self.texts['remote']}\n{remote}\n\n")
+                self.git_info_text.insert(tk.END, f"{self.texts['last_commit']} {last_commit}")
                 
                 self.status_var.set(f"Repository: {os.path.basename(self.repo_path.get())} | Branch: {branch}")
             else:
-                self.git_info_text.insert(tk.END, "Thư mục hiện tại không phải là git repository.")
-                self.status_var.set("Không phải git repository")
+                self.git_info_text.insert(tk.END, self.texts["not_git_repo"])
+                self.status_var.set(self.texts["not_git_repo"])
                 
                 # Hỏi người dùng có muốn khởi tạo git repository không
-                if messagebox.askyesno("Không phải git repository", "Thư mục hiện tại không phải là git repository. Bạn có muốn khởi tạo git repository không?"):
+                if messagebox.askyesno(self.texts["notice"], self.texts["init_git_question"]):
                     try:
                         subprocess.run(["git", "init"], check=True)
                         self.git_info_text.delete(1.0, tk.END)
-                        self.git_info_text.insert(tk.END, "Đã khởi tạo git repository thành công.")
-                        self.status_var.set("Đã khởi tạo git repository")
+                        self.git_info_text.insert(tk.END, self.texts["git_init_success"])
+                        self.status_var.set(self.texts["git_init_success"])
                         self.check_git()  # Kiểm tra lại sau khi khởi tạo
                     except Exception as e:
-                        self.git_info_text.insert(tk.END, f"\nLỗi khi khởi tạo git repository: {str(e)}")
+                        self.git_info_text.insert(tk.END, f"\n{self.texts['error']}: {str(e)}")
         except Exception as e:
-            self.git_info_text.insert(tk.END, f"Lỗi khi kiểm tra git: {str(e)}")
-            self.status_var.set("Lỗi")
+            self.git_info_text.insert(tk.END, f"{self.texts['error']}: {str(e)}")
+            self.status_var.set(self.texts["error"])
             
             # Kiểm tra xem Git đã được cài đặt chưa
             if not check_git_installed():
-                self.git_info_text.insert(tk.END, "\n\nGit chưa được cài đặt hoặc không có trong PATH.")
-                self.git_info_text.insert(tk.END, "\nVui lòng cài đặt Git từ https://git-scm.com/downloads")
+                self.git_info_text.insert(tk.END, f"\n\n{self.texts['git_not_installed']}")
+                self.git_info_text.insert(tk.END, f"\n{self.texts['git_install_prompt']}")
                 
                 # Hỏi người dùng có muốn chuyển sang chế độ mô phỏng không
-                if messagebox.askyesno("Git chưa được cài đặt", "Git chưa được cài đặt hoặc không có trong PATH. Bạn có muốn chuyển sang chế độ mô phỏng không?"):
+                if messagebox.askyesno(self.texts["notice"], self.texts["simulation_question"]):
                     self.settings["simulation_mode"] = True
                     self.save_settings(self.settings)
-                    self.git_info_text.insert(tk.END, "\n\nĐã chuyển sang chế độ mô phỏng.")
-                    self.status_var.set("Chế độ mô phỏng")
+                    self.git_info_text.insert(tk.END, f"\n\n{self.texts['simulation_enabled']}")
+                    self.status_var.set(self.texts["simulation_enabled"])
         
         self.git_info_text.configure(state="disabled")
     
@@ -726,8 +726,8 @@ class AutoCommitGUI:
             )
             
             if result.returncode != 0:
-                self.diff_text.insert(tk.END, "Thư mục hiện tại không phải là git repository.")
-                self.notebook.tab(1, text="Diff (Error)")
+                self.diff_text.insert(tk.END, self.texts["not_git_repo"])
+                self.notebook.tab(1, text=f"{self.texts['diff_tab']} (Error)")
                 self.diff_text.configure(state="disabled")
                 return
             
@@ -740,8 +740,8 @@ class AutoCommitGUI:
                 ).strip()
                 
                 if not staged_files:
-                    self.diff_text.insert(tk.END, "Không có file nào được staged.")
-                    self.notebook.tab(1, text="Diff (0)")
+                    self.diff_text.insert(tk.END, self.texts["no_staged_files"])
+                    self.notebook.tab(1, text=f"{self.texts['diff_tab']} (0)")
                 else:
                     # Lấy nội dung diff
                     diff_content = subprocess.check_output(
@@ -750,18 +750,18 @@ class AutoCommitGUI:
                         encoding='utf-8'
                     ).strip()
                     
-                    self.diff_text.insert(tk.END, f"Files đã thay đổi:\n{staged_files}\n\n")
-                    self.diff_text.insert(tk.END, f"Nội dung diff:\n{diff_content}")
+                    self.diff_text.insert(tk.END, f"{self.texts['files_changed']}\n{staged_files}\n\n")
+                    self.diff_text.insert(tk.END, f"{self.texts['diff_content']}\n{diff_content}")
                     
                     # Cập nhật tiêu đề tab
                     file_count = len(staged_files.split("\n"))
-                    self.notebook.tab(1, text=f"Diff ({file_count})")
+                    self.notebook.tab(1, text=f"{self.texts['diff_tab']} ({file_count})")
             except Exception as e:
-                self.diff_text.insert(tk.END, f"Lỗi khi lấy thông tin diff: {str(e)}")
-                self.notebook.tab(1, text="Diff (Error)")
+                self.diff_text.insert(tk.END, f"{self.texts['error']}: {str(e)}")
+                self.notebook.tab(1, text=f"{self.texts['diff_tab']} (Error)")
         except Exception as e:
-            self.diff_text.insert(tk.END, f"Lỗi khi kiểm tra git: {str(e)}")
-            self.notebook.tab(1, text="Diff (Error)")
+            self.diff_text.insert(tk.END, f"{self.texts['error']}: {str(e)}")
+            self.notebook.tab(1, text=f"{self.texts['diff_tab']} (Error)")
         
         self.diff_text.configure(state="disabled")
     
@@ -769,7 +769,7 @@ class AutoCommitGUI:
         """Tạo commit message bằng API Gemini"""
         # Kiểm tra API key
         if not self.settings["api_key"] or self.settings["api_key"] == "YOUR_GEMINI_API_KEY":
-            messagebox.showerror("Lỗi", "API key chưa được cấu hình. Vui lòng cấu hình API key trong phần Cài đặt.")
+            messagebox.showerror(self.texts["error"], self.texts["no_api_key"])
             self.open_settings()
             return
         
@@ -777,15 +777,15 @@ class AutoCommitGUI:
         try:
             diff_info = get_git_diff()
             if not diff_info:
-                messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+                messagebox.showinfo(self.texts["notice"], self.texts["no_changes"])
                 return
         except Exception as e:
-            auto_commit_logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
-            messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
+            auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+            messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
             return
         
         # Cập nhật trạng thái
-        self.status_var.set("Đang tạo commit message...")
+        self.status_var.set(self.texts["generating_message"])
         
         # Tạo thread để không block giao diện
         def generate_thread():
@@ -793,8 +793,8 @@ class AutoCommitGUI:
                 # Tạo commit message
                 commit_message = generate_commit_message(diff_info)
                 if not commit_message:
-                    messagebox.showerror("Lỗi", "Không thể tạo commit message.")
-                    self.status_var.set("Lỗi khi tạo commit message")
+                    messagebox.showerror(self.texts["error"], self.texts["error"])
+                    self.status_var.set(self.texts["error"])
                     return
                 
                 # Cập nhật text widget
@@ -802,11 +802,11 @@ class AutoCommitGUI:
                 self.commit_message_text.insert(tk.END, commit_message)
                 
                 # Cập nhật trạng thái
-                self.status_var.set("Đã tạo commit message")
+                self.status_var.set(self.texts["message_generated"])
             except Exception as e:
-                auto_commit_logger.error(f"Lỗi khi tạo commit message: {str(e)}")
-                messagebox.showerror("Lỗi", f"Lỗi khi tạo commit message: {str(e)}")
-                self.status_var.set("Lỗi")
+                auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+                messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
+                self.status_var.set(self.texts["error"])
         
         threading.Thread(target=generate_thread).start()
     
@@ -814,7 +814,7 @@ class AutoCommitGUI:
         """Tự động tạo commit message và commit ngay lập tức"""
         # Kiểm tra API key
         if not self.settings["api_key"] or self.settings["api_key"] == "YOUR_GEMINI_API_KEY":
-            messagebox.showerror("Lỗi", "API key chưa được cấu hình. Vui lòng cấu hình API key trong phần Cài đặt.")
+            messagebox.showerror(self.texts["error"], self.texts["no_api_key"])
             self.open_settings()
             return
         
@@ -822,15 +822,15 @@ class AutoCommitGUI:
         try:
             diff_info = get_git_diff()
             if not diff_info:
-                messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+                messagebox.showinfo(self.texts["notice"], self.texts["no_changes"])
                 return
         except Exception as e:
-            auto_commit_logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
-            messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
+            auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+            messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
             return
         
         # Cập nhật trạng thái
-        self.status_var.set("Đang tự động commit...")
+        self.status_var.set(self.texts["committing"])
         
         # Tạo thread để không block giao diện
         def auto_commit_thread():
@@ -838,8 +838,8 @@ class AutoCommitGUI:
                 # Tạo commit message
                 commit_message = generate_commit_message(diff_info)
                 if not commit_message:
-                    messagebox.showerror("Lỗi", "Không thể tạo commit message.")
-                    self.status_var.set("Lỗi khi tạo commit message")
+                    messagebox.showerror(self.texts["error"], self.texts["error"])
+                    self.status_var.set(self.texts["error"])
                     return
                 
                 # Cập nhật text widget
@@ -849,12 +849,12 @@ class AutoCommitGUI:
                 # Tạo commit
                 success = create_commit(commit_message)
                 if not success:
-                    messagebox.showerror("Lỗi", "Không thể tạo commit.")
-                    self.status_var.set("Lỗi khi commit")
+                    messagebox.showerror(self.texts["error"], self.texts["error"])
+                    self.status_var.set(self.texts["error"])
                     return
                 
                 # Cập nhật trạng thái
-                self.status_var.set("Đã commit thành công")
+                self.status_var.set(self.texts["commit_success"])
                 
                 # Cập nhật thông tin
                 self.check_git()
@@ -862,22 +862,22 @@ class AutoCommitGUI:
                 
                 # Push nếu được chọn
                 if self.auto_push.get():
-                    self.status_var.set("Đang push...")
+                    self.status_var.set(self.texts["pushing"])
                     try:
                         success = push_to_remote()
                         if success:
-                            self.status_var.set("Đã push thành công")
+                            self.status_var.set(self.texts["push_success"])
                         else:
-                            messagebox.showerror("Lỗi", "Không thể push lên remote repository.")
-                            self.status_var.set("Lỗi khi push")
+                            messagebox.showerror(self.texts["error"], self.texts["push_error"])
+                            self.status_var.set(self.texts["push_error"])
                     except Exception as e:
-                        auto_commit_logger.error(f"Lỗi khi push: {str(e)}")
-                        messagebox.showerror("Lỗi", f"Lỗi khi push: {str(e)}")
-                        self.status_var.set("Lỗi khi push")
+                        auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+                        messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
+                        self.status_var.set(self.texts["push_error"])
             except Exception as e:
-                auto_commit_logger.error(f"Lỗi khi tự động commit: {str(e)}")
-                messagebox.showerror("Lỗi", f"Lỗi khi tự động commit: {str(e)}")
-                self.status_var.set("Lỗi")
+                auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+                messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
+                self.status_var.set(self.texts["error"])
         
         threading.Thread(target=auto_commit_thread).start()
     
@@ -886,23 +886,23 @@ class AutoCommitGUI:
         # Lấy commit message từ text widget
         commit_message = self.commit_message_text.get(1.0, tk.END).strip()
         if not commit_message:
-            messagebox.showinfo("Thông báo", "Vui lòng nhập commit message.")
+            messagebox.showinfo(self.texts["notice"], self.texts["enter_commit_message"])
             return
         
         # Kiểm tra xem có file nào được staged không
         try:
             diff_info = get_git_diff()
             if not diff_info and not self.settings["simulation_mode"]:
-                messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+                messagebox.showinfo(self.texts["notice"], self.texts["no_changes"])
                 return
         except Exception as e:
             if not self.settings["simulation_mode"]:
-                auto_commit_logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
-                messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
+                auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+                messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
                 return
         
         # Cập nhật trạng thái
-        self.status_var.set("Đang commit...")
+        self.status_var.set(self.texts["committing"])
         
         # Tạo thread để không block giao diện
         def commit_thread():
@@ -910,12 +910,12 @@ class AutoCommitGUI:
                 # Tạo commit
                 success = create_commit(commit_message)
                 if not success:
-                    messagebox.showerror("Lỗi", "Không thể tạo commit.")
-                    self.status_var.set("Lỗi khi commit")
+                    messagebox.showerror(self.texts["error"], self.texts["error"])
+                    self.status_var.set(self.texts["error"])
                     return
                 
                 # Cập nhật trạng thái
-                self.status_var.set("Đã commit thành công")
+                self.status_var.set(self.texts["commit_success"])
                 
                 # Cập nhật thông tin
                 self.check_git()
@@ -926,22 +926,22 @@ class AutoCommitGUI:
                 
                 # Push nếu được chọn
                 if self.auto_push.get():
-                    self.status_var.set("Đang push...")
+                    self.status_var.set(self.texts["pushing"])
                     try:
                         success = push_to_remote()
                         if success:
-                            self.status_var.set("Đã push thành công")
+                            self.status_var.set(self.texts["push_success"])
                         else:
-                            messagebox.showerror("Lỗi", "Không thể push lên remote repository.")
-                            self.status_var.set("Lỗi khi push")
+                            messagebox.showerror(self.texts["error"], self.texts["push_error"])
+                            self.status_var.set(self.texts["push_error"])
                     except Exception as e:
-                        auto_commit_logger.error(f"Lỗi khi push: {str(e)}")
-                        messagebox.showerror("Lỗi", f"Lỗi khi push: {str(e)}")
-                        self.status_var.set("Lỗi khi push")
+                        auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+                        messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
+                        self.status_var.set(self.texts["push_error"])
             except Exception as e:
-                auto_commit_logger.error(f"Lỗi khi commit: {str(e)}")
-                messagebox.showerror("Lỗi", f"Lỗi khi commit: {str(e)}")
-                self.status_var.set("Lỗi")
+                auto_commit_logger.error(f"{self.texts['error']}: {str(e)}")
+                messagebox.showerror(self.texts["error"], f"{self.texts['error']}: {str(e)}")
+                self.status_var.set(self.texts["error"])
         
         threading.Thread(target=commit_thread).start()
     
