@@ -13,7 +13,7 @@ logging.basicConfig(
     format='%(asctime)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('auto_commit.log')
+        logging.FileHandler('auto_commit.log', encoding='utf-8')
     ]
 )
 
@@ -79,13 +79,13 @@ class GitAutoCommit(FileSystemEventHandler):
                 try:
                     origin = self.repo.remote(name='origin')
                     origin.push()
-                    logging.info(f"✅ Đã commit và push thành công:\n{commit_message}")
+                    logging.info(f"[SUCCESS] Đã commit và push thành công:\n{commit_message}")
                 except Exception as e:
-                    logging.error(f"❌ Lỗi khi push lên remote: {str(e)}")
-                    logging.info("💡 Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
+                    logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
+                    logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
             
         except Exception as e:
-            logging.error(f"❌ Lỗi: {str(e)}")
+            logging.error(f"[ERROR] Lỗi: {str(e)}")
 
 if __name__ == "__main__":
     try:
@@ -95,17 +95,17 @@ if __name__ == "__main__":
         observer.schedule(event_handler, repo_path, recursive=True)
         observer.start()
         
-        logging.info("🚀 Bắt đầu theo dõi thay đổi trong repository...")
-        logging.info(f"📁 Đường dẫn repository: {os.path.abspath(repo_path)}")
+        logging.info("[START] Bắt đầu theo dõi thay đổi trong repository...")
+        logging.info(f"[PATH] Đường dẫn repository: {os.path.abspath(repo_path)}")
         
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             observer.stop()
-            logging.info("🛑 Đã dừng theo dõi repository")
+            logging.info("[STOP] Đã dừng theo dõi repository")
         observer.join()
         
     except Exception as e:
-        logging.error(f"❌ Lỗi khởi động ứng dụng: {str(e)}")
+        logging.error(f"[ERROR] Lỗi khởi động ứng dụng: {str(e)}")
         sys.exit(1) 
