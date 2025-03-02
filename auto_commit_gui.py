@@ -302,25 +302,38 @@ class AutoCommitGUI:
             
             if result.returncode == 0:
                 # Lấy thông tin branch
-                branch = subprocess.check_output(
-                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                    text=True,
-                    encoding='utf-8'
-                ).strip()
+                try:
+                    branch = subprocess.check_output(
+                        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                        text=True,
+                        encoding='utf-8'
+                    ).strip()
+                except Exception:
+                    branch = "Không xác định"
                 
                 # Lấy thông tin remote
-                remote = subprocess.check_output(
-                    ["git", "remote", "-v"],
-                    text=True,
-                    encoding='utf-8'
-                ).strip()
+                try:
+                    remote = subprocess.check_output(
+                        ["git", "remote", "-v"],
+                        text=True,
+                        encoding='utf-8'
+                    ).strip()
+                    if not remote:
+                        remote = "Không có remote"
+                except Exception:
+                    remote = "Không có remote hoặc lỗi khi lấy thông tin"
                 
                 # Lấy thông tin commit gần nhất
-                last_commit = subprocess.check_output(
-                    ["git", "log", "-1", "--oneline"],
-                    text=True,
-                    encoding='utf-8'
-                ).strip()
+                try:
+                    last_commit = subprocess.check_output(
+                        ["git", "log", "-1", "--oneline"],
+                        text=True,
+                        encoding='utf-8'
+                    ).strip()
+                    if not last_commit:
+                        last_commit = "Chưa có commit nào"
+                except Exception:
+                    last_commit = "Chưa có commit nào hoặc lỗi khi lấy thông tin"
                 
                 self.git_info_text.insert(tk.END, f"Branch hiện tại: {branch}\n\n")
                 self.git_info_text.insert(tk.END, f"Remote:\n{remote}\n\n")
@@ -330,9 +343,32 @@ class AutoCommitGUI:
             else:
                 self.git_info_text.insert(tk.END, "Thư mục hiện tại không phải là git repository.")
                 self.status_var.set("Không phải git repository")
+                
+                # Hỏi người dùng có muốn khởi tạo git repository không
+                if messagebox.askyesno("Không phải git repository", "Thư mục hiện tại không phải là git repository. Bạn có muốn khởi tạo git repository không?"):
+                    try:
+                        subprocess.run(["git", "init"], check=True)
+                        self.git_info_text.delete(1.0, tk.END)
+                        self.git_info_text.insert(tk.END, "Đã khởi tạo git repository thành công.")
+                        self.status_var.set("Đã khởi tạo git repository")
+                        self.check_git()  # Kiểm tra lại sau khi khởi tạo
+                    except Exception as e:
+                        self.git_info_text.insert(tk.END, f"\nLỗi khi khởi tạo git repository: {str(e)}")
         except Exception as e:
             self.git_info_text.insert(tk.END, f"Lỗi khi kiểm tra git: {str(e)}")
             self.status_var.set("Lỗi")
+            
+            # Kiểm tra xem Git đã được cài đặt chưa
+            if not check_git_installed():
+                self.git_info_text.insert(tk.END, "\n\nGit chưa được cài đặt hoặc không có trong PATH.")
+                self.git_info_text.insert(tk.END, "\nVui lòng cài đặt Git từ https://git-scm.com/downloads")
+                
+                # Hỏi người dùng có muốn chuyển sang chế độ mô phỏng không
+                if messagebox.askyesno("Git chưa được cài đặt", "Git chưa được cài đặt hoặc không có trong PATH. Bạn có muốn chuyển sang chế độ mô phỏng không?"):
+                    self.settings["simulation_mode"] = True
+                    self.save_settings(self.settings)
+                    self.git_info_text.insert(tk.END, "\n\nĐã chuyển sang chế độ mô phỏng.")
+                    self.status_var.set("Chế độ mô phỏng")
         
         self.git_info_text.configure(state="disabled")
     
