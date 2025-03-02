@@ -234,13 +234,17 @@ class SettingsDialog(tk.Toplevel):
     def __init__(self, parent, settings, save_callback):
         super().__init__(parent)
         self.title("Cài đặt")
-        self.geometry("500x300")
+        self.geometry("500x400")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
         
         self.settings = settings
         self.save_callback = save_callback
+        
+        # Lấy ngôn ngữ hiện tại
+        self.current_lang = self.settings.get("language", "vi")
+        self.texts = TRANSLATIONS[self.current_lang]
         
         self.create_widgets()
         self.center_window()
@@ -252,36 +256,50 @@ class SettingsDialog(tk.Toplevel):
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # API Key
-        ttk.Label(main_frame, text="API Key Gemini:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text=self.texts["api_key"]).grid(row=0, column=0, sticky=tk.W, pady=5)
         self.api_key_var = tk.StringVar(value=self.settings.get("api_key", ""))
         ttk.Entry(main_frame, textvariable=self.api_key_var, width=50).grid(row=0, column=1, sticky=tk.W, pady=5)
         
         # Kích thước tối đa của diff
-        ttk.Label(main_frame, text="Kích thước tối đa của diff:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text=self.texts["max_diff_size"]).grid(row=1, column=0, sticky=tk.W, pady=5)
         self.max_diff_size_var = tk.StringVar(value=str(self.settings.get("max_diff_size", 3000)))
         ttk.Entry(main_frame, textvariable=self.max_diff_size_var, width=10).grid(row=1, column=1, sticky=tk.W, pady=5)
         
         # Số lần thử lại tối đa
-        ttk.Label(main_frame, text="Số lần thử lại tối đa:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text=self.texts["max_retries"]).grid(row=2, column=0, sticky=tk.W, pady=5)
         self.max_retries_var = tk.StringVar(value=str(self.settings.get("max_retries", 3)))
         ttk.Entry(main_frame, textvariable=self.max_retries_var, width=5).grid(row=2, column=1, sticky=tk.W, pady=5)
         
         # Thời gian chờ giữa các lần thử lại
-        ttk.Label(main_frame, text="Thời gian chờ giữa các lần thử lại (giây):").grid(row=3, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text=self.texts["retry_delay"]).grid(row=3, column=0, sticky=tk.W, pady=5)
         self.retry_delay_var = tk.StringVar(value=str(self.settings.get("retry_delay", 2)))
         ttk.Entry(main_frame, textvariable=self.retry_delay_var, width=5).grid(row=3, column=1, sticky=tk.W, pady=5)
         
         # Chế độ mô phỏng
-        ttk.Label(main_frame, text="Chế độ mô phỏng:").grid(row=4, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text=self.texts["simulation_mode"]).grid(row=4, column=0, sticky=tk.W, pady=5)
         self.simulation_mode_var = tk.BooleanVar(value=self.settings.get("simulation_mode", False))
         ttk.Checkbutton(main_frame, variable=self.simulation_mode_var).grid(row=4, column=1, sticky=tk.W, pady=5)
         
+        # Ngôn ngữ
+        ttk.Label(main_frame, text=self.texts["language"]).grid(row=5, column=0, sticky=tk.W, pady=5)
+        self.language_var = tk.StringVar(value=self.settings.get("language", "vi"))
+        language_combo = ttk.Combobox(main_frame, textvariable=self.language_var, width=10, state="readonly")
+        language_combo["values"] = ["vi", "en"]
+        language_combo.grid(row=5, column=1, sticky=tk.W, pady=5)
+        
+        # Giao diện
+        ttk.Label(main_frame, text=self.texts["theme"]).grid(row=6, column=0, sticky=tk.W, pady=5)
+        self.theme_var = tk.StringVar(value=self.settings.get("theme", "light"))
+        theme_combo = ttk.Combobox(main_frame, textvariable=self.theme_var, width=10, state="readonly")
+        theme_combo["values"] = ["light", "dark"]
+        theme_combo.grid(row=6, column=1, sticky=tk.W, pady=5)
+        
         # Nút lưu và hủy
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=5, column=0, columnspan=2, pady=10)
+        button_frame.grid(row=7, column=0, columnspan=2, pady=10)
         
-        ttk.Button(button_frame, text="Lưu", command=self.save_settings).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Hủy", command=self.destroy).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text=self.texts["save"], command=self.save_settings).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text=self.texts["cancel"], command=self.destroy).pack(side=tk.LEFT, padx=5)
     
     def save_settings(self):
         """Lưu cài đặt và đóng dialog"""
@@ -291,7 +309,7 @@ class SettingsDialog(tk.Toplevel):
             retry_delay = int(self.retry_delay_var.get())
             
             if max_diff_size <= 0 or max_retries <= 0 or retry_delay <= 0:
-                messagebox.showerror("Lỗi", "Các giá trị phải là số nguyên dương.")
+                messagebox.showerror(self.texts["error"], self.texts["positive_integer_error"])
                 return
             
             self.settings.update({
@@ -299,13 +317,15 @@ class SettingsDialog(tk.Toplevel):
                 "max_diff_size": max_diff_size,
                 "max_retries": max_retries,
                 "retry_delay": retry_delay,
-                "simulation_mode": self.simulation_mode_var.get()
+                "simulation_mode": self.simulation_mode_var.get(),
+                "language": self.language_var.get(),
+                "theme": self.theme_var.get()
             })
             
             self.save_callback(self.settings)
             self.destroy()
         except ValueError:
-            messagebox.showerror("Lỗi", "Các giá trị phải là số nguyên.")
+            messagebox.showerror(self.texts["error"], self.texts["integer_error"])
     
     def center_window(self):
         """Căn giữa cửa sổ dialog"""
