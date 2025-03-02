@@ -1,5 +1,19 @@
 # Hướng dẫn sử dụng Auto Commit với Copilot
 
+## Cài đặt và cấu hình tự động
+
+Để thực hiện tất cả các bước từ cài đặt công cụ đến tạo file cài đặt và cài đặt extension, chạy file `run-all.bat`:
+
+```
+.\run-all.bat
+```
+
+Script này sẽ:
+1. Cài đặt tất cả các công cụ cần thiết
+2. Đóng gói extension thành file VSIX
+3. Tạo file cài đặt EXE
+4. Hỏi bạn có muốn cài đặt extension không
+
 ## Cài đặt công cụ
 
 Trước khi bắt đầu, bạn cần cài đặt các công cụ cần thiết:
@@ -131,6 +145,7 @@ Script này sẽ:
 
 ## Các file script
 
+- `run-all.bat`: Chạy tất cả các bước từ cài đặt công cụ đến tạo file cài đặt
 - `setup-tools.bat`: Cài đặt tất cả các công cụ cần thiết
 - `package-extension.bat`: Đóng gói extension thành file VSIX
 - `build-installer.bat`: Tạo file cài đặt EXE
