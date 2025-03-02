@@ -37,6 +37,15 @@ queue_handler = QueueHandler(log_queue)
 queue_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
 logging.getLogger().addHandler(queue_handler)
 
+# Định nghĩa các màu cho dark mode
+DARK_BG = "#2E2E2E"
+DARKER_BG = "#252525"
+DARK_TEXT = "#E0E0E0"
+ACCENT_COLOR = "#007ACC"
+BUTTON_BG = "#3E3E3E"
+BUTTON_ACTIVE = "#505050"
+HIGHLIGHT_BG = "#3A3D41"
+
 class GitAutoCommit(FileSystemEventHandler):
     def __init__(self, repo_path='.'):
         self.repo_path = repo_path
@@ -114,29 +123,40 @@ class GitAutoCommit(FileSystemEventHandler):
         except Exception as e:
             logging.error("[ERROR] Lỗi: {}".format(str(e)))
 
-class CommitMessageDialog(simpledialog.Dialog):
+class DarkThemeDialog(simpledialog.Dialog):
     def __init__(self, parent, title, default_message, changed_files):
         self.default_message = default_message
         self.changed_files = changed_files
         self.result_message = None
+        
+        # Thiết lập style cho dialog
+        parent.option_add("*Dialog.msg.background", DARK_BG)
+        parent.option_add("*Dialog.msg.foreground", DARK_TEXT)
+        parent.option_add("*Dialog.background", DARK_BG)
+        parent.option_add("*Dialog.foreground", DARK_TEXT)
+        
         super().__init__(parent, title)
         
     def body(self, master):
-        ttk.Label(master, text="Các file đã thay đổi:").grid(row=0, column=0, sticky="w", pady=(0, 5))
+        master.configure(bg=DARK_BG)
+        
+        ttk.Label(master, text="Các file đã thay đổi:", background=DARK_BG, foreground=DARK_TEXT).grid(row=0, column=0, sticky="w", pady=(0, 5))
         
         # Hiển thị danh sách file đã thay đổi
         files_frame = ttk.Frame(master)
         files_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         
-        files_text = scrolledtext.ScrolledText(files_frame, wrap=tk.WORD, width=60, height=5)
+        files_text = scrolledtext.ScrolledText(files_frame, wrap=tk.WORD, width=60, height=5, 
+                                              bg=DARKER_BG, fg=DARK_TEXT, insertbackground=DARK_TEXT)
         files_text.pack(fill=tk.BOTH, expand=True)
         files_text.insert(tk.END, "\n".join(self.changed_files))
         files_text.config(state=tk.DISABLED)
         
-        ttk.Label(master, text="Nội dung commit:").grid(row=2, column=0, sticky="w", pady=(0, 5))
+        ttk.Label(master, text="Nội dung commit:", background=DARK_BG, foreground=DARK_TEXT).grid(row=2, column=0, sticky="w", pady=(0, 5))
         
         # Text area cho commit message
-        self.message_text = scrolledtext.ScrolledText(master, wrap=tk.WORD, width=60, height=10)
+        self.message_text = scrolledtext.ScrolledText(master, wrap=tk.WORD, width=60, height=10,
+                                                     bg=DARKER_BG, fg=DARK_TEXT, insertbackground=DARK_TEXT)
         self.message_text.grid(row=3, column=0, sticky="ew")
         self.message_text.insert(tk.END, self.default_message)
         
@@ -144,8 +164,9 @@ class CommitMessageDialog(simpledialog.Dialog):
         generate_frame = ttk.Frame(master)
         generate_frame.grid(row=4, column=0, sticky="ew", pady=10)
         
-        ttk.Button(generate_frame, text="Generate với Copilot", 
-                  command=self.generate_with_copilot).pack(side=tk.LEFT, padx=5)
+        generate_button = ttk.Button(generate_frame, text="Generate với Copilot", 
+                                    command=self.generate_with_copilot)
+        generate_button.pack(side=tk.LEFT, padx=5)
         
         return self.message_text  # initial focus
         
@@ -205,6 +226,22 @@ class CommitMessageDialog(simpledialog.Dialog):
         except Exception as e:
             messagebox.showerror("Lỗi", "Không thể tạo commit message: {}".format(str(e)))
             self.message_text.config(state=tk.NORMAL)
+    
+    def buttonbox(self):
+        # Tạo frame cho các nút
+        box = ttk.Frame(self)
+        
+        # Tạo nút OK và Cancel
+        ok_button = ttk.Button(box, text="OK", width=10, command=self.ok)
+        ok_button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        cancel_button = ttk.Button(box, text="Cancel", width=10, command=self.cancel)
+        cancel_button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+        
+        box.pack(pady=5)
     
     def apply(self):
         self.result_message = self.message_text.get(1.0, tk.END).strip()
