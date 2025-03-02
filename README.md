@@ -4,28 +4,23 @@ Dự án này cung cấp hai phương pháp để tự động hóa quy trình c
 1. Sử dụng script PowerShell với phím tắt
 2. Sử dụng extension VS Code
 
-## Cài đặt và cấu hình tự động
+## Cài đặt nhanh (Một bước duy nhất)
 
-Để thực hiện tất cả các bước từ cài đặt công cụ đến tạo file cài đặt và cài đặt extension, chạy file `run-all.bat`:
+Để cài đặt và thiết lập tất cả mọi thứ chỉ với một bước duy nhất, chạy file `auto-commit-setup.bat`:
 
 ```
-.\run-all.bat
+.\auto-commit-setup.bat
 ```
 
-Script này sẽ:
-1. Cài đặt tất cả các công cụ cần thiết
-2. Đóng gói extension thành file VSIX
-3. Tạo file cài đặt EXE
-4. Hỏi bạn có muốn cài đặt extension không
+Script này sẽ tự động:
+1. Kiểm tra và hướng dẫn cài đặt các công cụ cần thiết (VS Code, Node.js, Inno Setup)
+2. Cài đặt vsce và các dependencies
+3. Biên dịch TypeScript
+4. Đóng gói extension thành file VSIX
+5. Tạo file cài đặt EXE (nếu Inno Setup đã được cài đặt)
+6. Cài đặt extension vào VS Code (nếu bạn chọn)
 
-## Cài đặt nhanh
-
-Để cài đặt extension một cách nhanh chóng, chỉ cần chạy file `quick-install.bat`:
-```
-.\quick-install.bat
-```
-
-Script này sẽ tự động đóng gói và cài đặt extension vào VS Code của bạn.
+> **Lưu ý**: Nên chạy script với quyền Administrator để đảm bảo quá trình cài đặt diễn ra suôn sẻ.
 
 ## Phương pháp 1: Script PowerShell
 
@@ -64,38 +59,6 @@ Extension này cung cấp một lệnh và phím tắt để tự động:
 2. Gọi lệnh Generate Commit Message with Copilot
 3. Thực hiện commit
 
-### Cài đặt
-
-#### Cài đặt nhanh
-Chạy file `quick-install.bat` để cài đặt extension một cách nhanh chóng:
-```
-.\quick-install.bat
-```
-
-#### Sử dụng file Executable (EXE)
-1. Chạy file `build-installer.bat` để tạo file cài đặt:
-   ```
-   .\build-installer.bat
-   ```
-2. Chạy file `Auto-Commit-Installer.exe` và làm theo hướng dẫn để cài đặt extension
-3. Khởi động lại VS Code sau khi cài đặt
-
-#### Sử dụng file VSIX
-1. Chạy file `package-extension.bat` để đóng gói extension:
-   ```
-   .\package-extension.bat
-   ```
-2. Mở VS Code
-3. Nhấn F1 hoặc Ctrl+Shift+P để mở Command Palette
-4. Gõ "Extensions: Install from VSIX" và chọn file `extension\auto-commit-copilot-0.0.1.vsix`
-
-#### Từ mã nguồn (chế độ debug)
-1. Chạy script `debug-extension.bat` để chuẩn bị và chạy extension trong chế độ debug:
-   ```
-   .\debug-extension.bat
-   ```
-2. Làm theo hướng dẫn trên màn hình để chạy extension trong chế độ debug
-
 ### Cách sử dụng
 
 1. Thực hiện các thay đổi trong dự án của bạn
@@ -111,48 +74,12 @@ Chạy file `quick-install.bat` để cài đặt extension một cách nhanh ch
 - GitHub Copilot extension đã được cài đặt và cấu hình
 - Node.js và npm
 
-## Phát triển
+## Gỡ cài đặt extension
 
-### Cài đặt công cụ
-
-Chạy file `setup-tools.bat` để cài đặt các công cụ cần thiết:
-```
-.\setup-tools.bat
-```
-
-### Môi trường ảo
-
-Dự án này sử dụng môi trường ảo để quản lý dependencies:
-
-1. Cài đặt virtualenv (nếu chưa có):
-   ```
-   python -m pip install virtualenv
-   ```
-
-2. Tạo môi trường ảo:
-   ```
-   python -m virtualenv venv
-   ```
-
-3. Kích hoạt môi trường ảo:
-   - Windows (PowerShell):
-     ```
-     .\venv\Scripts\Activate.ps1
-     ```
-   - Windows (Command Prompt):
-     ```
-     .\venv\Scripts\activate.bat
-     ```
-   - Linux/Mac:
-     ```
-     source venv/bin/activate
-     ```
-
-4. Cài đặt dependencies cho extension:
-   ```
-   cd extension
-   npm install
-   ```
+1. Mở VS Code
+2. Nhấn Ctrl+Shift+X để mở Extensions view
+3. Tìm "Auto Commit với Copilot" trong danh sách các extension đã cài đặt
+4. Nhấn nút "Uninstall"
 
 ## Tùy chỉnh
 
