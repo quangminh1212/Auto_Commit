@@ -17,16 +17,21 @@ logging.basicConfig(
         logging.FileHandler("auto_commit_gui.log", mode="a", encoding="utf-8")
     ]
 )
+logger = logging.getLogger('auto_commit_gui')
+logger.info("Khởi động ứng dụng Auto Commit GUI")
 
 # Import các hàm từ auto_commit.py
 try:
     from auto_commit import (
         get_git_diff, generate_commit_message, create_commit, 
         check_git_installed, check_api_key, push_to_remote, 
-        get_system_info, logger, API_KEY, SIMULATION_MODE
+        get_system_info, logger as auto_commit_logger, API_KEY, SIMULATION_MODE
     )
+    logger.info("Đã import thành công từ auto_commit.py")
 except ImportError as e:
-    print(f"Lỗi khi import từ auto_commit.py: {e}")
+    error_msg = f"Lỗi khi import từ auto_commit.py: {e}"
+    logger.error(error_msg)
+    print(error_msg)
     messagebox.showerror("Lỗi", f"Không thể import từ auto_commit.py: {e}. Đảm bảo file này tồn tại trong cùng thư mục.")
     sys.exit(1)
 
@@ -253,7 +258,7 @@ class AutoCommitGUI:
         # Thêm handler cho logger
         log_handler = logging.StreamHandler(self.redirect)
         log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        logger.addHandler(log_handler)
+        auto_commit_logger.addHandler(log_handler)
         
         # Frame dưới cùng
         bottom_frame = ttk.Frame(main_frame)
@@ -441,7 +446,7 @@ class AutoCommitGUI:
                 messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
                 return
         except Exception as e:
-            logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
+            auto_commit_logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
             messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
             return
         
@@ -465,7 +470,7 @@ class AutoCommitGUI:
                 # Cập nhật trạng thái
                 self.status_var.set("Đã tạo commit message")
             except Exception as e:
-                logger.error(f"Lỗi khi tạo commit message: {str(e)}")
+                auto_commit_logger.error(f"Lỗi khi tạo commit message: {str(e)}")
                 messagebox.showerror("Lỗi", f"Lỗi khi tạo commit message: {str(e)}")
                 self.status_var.set("Lỗi")
         
@@ -487,7 +492,7 @@ class AutoCommitGUI:
                 return
         except Exception as e:
             if not self.settings["simulation_mode"]:
-                logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
+                auto_commit_logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
                 messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
                 return
         
@@ -525,11 +530,11 @@ class AutoCommitGUI:
                             messagebox.showerror("Lỗi", "Không thể push lên remote repository.")
                             self.status_var.set("Lỗi khi push")
                     except Exception as e:
-                        logger.error(f"Lỗi khi push: {str(e)}")
+                        auto_commit_logger.error(f"Lỗi khi push: {str(e)}")
                         messagebox.showerror("Lỗi", f"Lỗi khi push: {str(e)}")
                         self.status_var.set("Lỗi khi push")
             except Exception as e:
-                logger.error(f"Lỗi khi commit: {str(e)}")
+                auto_commit_logger.error(f"Lỗi khi commit: {str(e)}")
                 messagebox.showerror("Lỗi", f"Lỗi khi commit: {str(e)}")
                 self.status_var.set("Lỗi")
         
@@ -577,13 +582,13 @@ class AutoCommitGUI:
                 
                 messagebox.showinfo("Thông báo", "Đã lưu cài đặt thành công.")
             except Exception as e:
-                logger.error(f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
+                auto_commit_logger.error(f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
                 messagebox.showerror("Lỗi", f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
                 
                 # Vẫn cập nhật biến toàn cục trong bộ nhớ
                 messagebox.showinfo("Thông báo", "Đã lưu cài đặt vào bộ nhớ (không cập nhật file).")
         except Exception as e:
-            logger.error(f"Lỗi khi cập nhật cài đặt: {str(e)}")
+            auto_commit_logger.error(f"Lỗi khi cập nhật cài đặt: {str(e)}")
             messagebox.showerror("Lỗi", f"Lỗi khi cập nhật cài đặt: {str(e)}")
     
     def update_variable(self, content, var_name, new_value):
@@ -595,9 +600,16 @@ class AutoCommitGUI:
 
 def main():
     """Hàm chính của ứng dụng"""
-    root = tk.Tk()
-    app = AutoCommitGUI(root)
-    root.mainloop()
+    try:
+        logger.info("Bắt đầu khởi tạo ứng dụng")
+        root = tk.Tk()
+        app = AutoCommitGUI(root)
+        logger.info("Đã khởi tạo ứng dụng thành công, bắt đầu vòng lặp chính")
+        root.mainloop()
+        logger.info("Ứng dụng đã đóng")
+    except Exception as e:
+        logger.critical(f"Lỗi không xử lý được: {str(e)}", exc_info=True)
+        messagebox.showerror("Lỗi nghiêm trọng", f"Ứng dụng gặp lỗi không xử lý được: {str(e)}")
 
 if __name__ == "__main__":
     main() 
