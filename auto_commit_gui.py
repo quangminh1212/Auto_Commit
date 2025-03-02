@@ -185,16 +185,16 @@ THEMES = {
         "tooltip_fg": "#000000"
     },
     "dark": {
-        "bg": "#1e1e1e",  # Tối hơn
-        "fg": "#ffffff",
-        "text_bg": "#2d2d2d",  # Tối hơn một chút so với nền
-        "text_fg": "#e0e0e0",  # Sáng hơn để dễ đọc
-        "button_bg": "#3d3d3d",  # Sáng hơn nền một chút
-        "button_fg": "#ffffff",
-        "highlight_bg": "#4d4d4d",  # Sáng hơn nữa để làm nổi bật
-        "highlight_fg": "#ffffff",
-        "tooltip_bg": "#4d4d4d",
-        "tooltip_fg": "#ffffff"
+        "bg": "#1e1e1e",  # Nền tối
+        "fg": "#ffffff",  # Chữ trắng
+        "text_bg": "#2d2d2d",  # Nền text widget tối
+        "text_fg": "#ffffff",  # Chữ trong text widget trắng
+        "button_bg": "#3d3d3d",  # Nền nút tối
+        "button_fg": "#ffffff",  # Chữ trên nút trắng
+        "highlight_bg": "#4d4d4d",  # Nền highlight tối
+        "highlight_fg": "#ffffff",  # Chữ highlight trắng
+        "tooltip_bg": "#4d4d4d",  # Nền tooltip tối
+        "tooltip_fg": "#ffffff"  # Chữ tooltip trắng
     }
 }
 
@@ -403,33 +403,58 @@ class AutoCommitGUI:
     
     def apply_theme(self):
         """Áp dụng theme cho giao diện"""
+        # Cấu hình chung
         self.style.configure(".", 
             background=self.theme["bg"],
             foreground=self.theme["fg"])
         
+        # Frame
         self.style.configure("TFrame",
             background=self.theme["bg"])
         
+        # Label
         self.style.configure("TLabel",
             background=self.theme["bg"],
             foreground=self.theme["fg"])
         
+        # Button
         self.style.configure("TButton",
             background=self.theme["button_bg"],
             foreground=self.theme["button_fg"])
         
+        # Checkbutton
         self.style.configure("TCheckbutton",
             background=self.theme["bg"],
             foreground=self.theme["fg"])
         
+        # Notebook (Tabs)
         self.style.configure("TNotebook",
             background=self.theme["bg"],
             foreground=self.theme["fg"])
         
         self.style.configure("TNotebook.Tab",
             background=self.theme["button_bg"],
-            foreground=self.theme["button_fg"])
+            foreground=self.theme["button_fg"],
+            padding=[10, 5])
         
+        # Selected tab
+        self.style.map("TNotebook.Tab",
+            background=[("selected", self.theme["highlight_bg"])],
+            foreground=[("selected", self.theme["highlight_fg"])])
+        
+        # Entry
+        self.style.configure("TEntry",
+            fieldbackground=self.theme["text_bg"],
+            foreground=self.theme["text_fg"])
+        
+        # Combobox
+        self.style.configure("TCombobox",
+            fieldbackground=self.theme["text_bg"],
+            foreground=self.theme["text_fg"],
+            selectbackground=self.theme["highlight_bg"],
+            selectforeground=self.theme["highlight_fg"])
+        
+        # Cập nhật màu nền cho cửa sổ chính
         self.root.configure(bg=self.theme["bg"])
     
     def update_language(self):
@@ -1113,7 +1138,25 @@ class AutoCommitGUI:
         
         self.style.configure("TNotebook.Tab",
             background=self.theme["button_bg"],
-            foreground=self.theme["button_fg"])
+            foreground=self.theme["button_fg"],
+            padding=[10, 5])
+        
+        # Selected tab
+        self.style.map("TNotebook.Tab",
+            background=[("selected", self.theme["highlight_bg"])],
+            foreground=[("selected", self.theme["highlight_fg"])])
+        
+        # Entry
+        self.style.configure("TEntry",
+            fieldbackground=self.theme["text_bg"],
+            foreground=self.theme["text_fg"])
+        
+        # Combobox
+        self.style.configure("TCombobox",
+            fieldbackground=self.theme["text_bg"],
+            foreground=self.theme["text_fg"],
+            selectbackground=self.theme["highlight_bg"],
+            selectforeground=self.theme["highlight_fg"])
         
         # Force cập nhật giao diện
         self.root.update_idletasks()
