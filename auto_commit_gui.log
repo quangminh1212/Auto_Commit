@@ -10,3 +10,27 @@
 2025-03-02 15:55:54,900 - INFO - Đã import thành công từ auto_commit.py
 2025-03-02 15:55:54,900 - INFO - Bắt đầu khởi tạo ứng dụng
 2025-03-02 15:55:55,143 - INFO - Đã khởi tạo ứng dụng thành công, bắt đầu vòng lặp chính
+2025-03-02 16:44:45,056 - INFO - Khởi động ứng dụng Auto Commit GUI
+2025-03-02 16:44:45,191 - INFO - Đã import thành công từ auto_commit.py
+2025-03-02 16:44:45,192 - INFO - Bắt đầu khởi tạo ứng dụng
+2025-03-02 16:44:45,497 - INFO - Đã khởi tạo ứng dụng thành công, bắt đầu vòng lặp chính
+2025-03-02 16:45:53,734 - INFO - Dang goi API Gemini de tao commit message...
+2025-03-02 16:45:56,273 - INFO - Da tao commit message thanh cong.
+2025-03-02 16:46:01,159 - INFO - Dang goi API Gemini de tao commit message...
+2025-03-02 16:46:04,575 - INFO - Da tao commit message thanh cong.
+2025-03-02 16:46:04,581 - INFO - Dang tao commit...
+2025-03-02 16:46:04,692 - INFO - Da tao commit thanh cong voi message:
+feat(auto-commit): Thêm file mẫu để thử nghiệm Auto Commit
+
+Thêm file `example2.txt` để kiểm tra các chức năng mới của Auto Commit.
+
+Các chức năng mới bao gồm:
+- Tự động tạo commit message khi chuyển đến tab Commit
+- Tự động commit khi nhấn Ctrl+Enter trong ô commit message
+- Nút "Tự động commit" để tạo commit message và commit ngay lập tức
+- Tooltip hiển thị thông tin khi di chuột qua các nút
+- Thông báo trạng thái hiển thị ở thanh trạng thái
+2025-03-02 16:46:09,136 - INFO - Khong co file nao duoc staged.
+2025-03-02 16:46:11,664 - INFO - Khong co file nao duoc staged.
+2025-03-02 16:46:16,735 - INFO - Khong co file nao duoc staged.
+2025-03-02 16:46:31,946 - INFO - Ứng dụng đã đóng
