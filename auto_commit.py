@@ -29,11 +29,11 @@ API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"
 API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
 
 # Cấu hình chung
-MAX_DIFF_SIZE = 3000  # Kích thước tối đa của diff content để gửi đến API
-SIMULATION_MODE = False  # Chế độ mô phỏng (không cần Git)
+MAX_DIFF_SIZE = 3000
+SIMULATION_MODE = False
 COMMIT_HISTORY_FILE = "commit_history.txt"  # File lưu lịch sử commit trong chế độ mô phỏng
-MAX_RETRIES = 3  # Số lần thử lại tối đa khi gọi API
-RETRY_DELAY = 2  # Thời gian chờ giữa các lần thử lại (giây)
+MAX_RETRIES = 3
+RETRY_DELAY = 2
 
 def check_git_installed() -> bool:
     """Kiểm tra xem Git đã được cài đặt chưa"""
@@ -52,7 +52,7 @@ def check_git_installed() -> bool:
         choice = input("Ban muon tiep tuc o che do mo phong khong? (Y/N): ")
         if choice.lower() == 'y':
             global SIMULATION_MODE
-            SIMULATION_MODE = True
+            SIMULATION_MODE = False
             logger.info("Da kich hoat che do mo phong Git.")
             return True
         else:
@@ -62,7 +62,7 @@ def check_git_installed() -> bool:
 def check_api_key() -> bool:
     """Kiểm tra xem API key đã được cấu hình chưa"""
     global API_KEY
-    if API_KEY == "YOUR_GEMINI_API_KEY":
+    if API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"
         logger.warning("API key chua duoc cau hinh.")
         
         # Hỏi người dùng có muốn nhập API key không
@@ -73,13 +73,13 @@ def check_api_key() -> bool:
                 with open(__file__, 'r', encoding='utf-8') as file:
                     content = file.read()
                 
-                content = content.replace('API_KEY = "YOUR_GEMINI_API_KEY"', f'API_KEY = "{api_key}"')
+                content = content.replace('API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"
                 
                 with open(__file__, 'w', encoding='utf-8') as file:
                     file.write(content)
                 
                 # Cập nhật biến toàn cục
-                API_KEY = api_key
+                API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"
                 
                 logger.info("API key da duoc cap nhat.")
                 return True
