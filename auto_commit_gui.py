@@ -146,10 +146,17 @@ class AutoCommitGUI:
         self.root.geometry("800x600")
         self.root.minsize(800, 600)
         
+        # Thiết lập icon
+        try:
+            self.root.iconbitmap("git.ico")
+        except:
+            pass  # Bỏ qua nếu không tìm thấy file icon
+        
         # Biến lưu trữ
         self.repo_path = tk.StringVar(value=os.getcwd())
         self.commit_message = tk.StringVar()
         self.auto_push = tk.BooleanVar(value=False)
+        self.auto_generate = tk.BooleanVar(value=True)  # Tự động tạo commit message khi chuyển tab
         
         # Cài đặt mặc định
         self.settings = {
@@ -170,6 +177,9 @@ class AutoCommitGUI:
         
         # Kiểm tra Git
         self.check_git()
+        
+        # Hiển thị thông báo chào mừng
+        self.status_var.set("Chào mừng đến với Auto Commit! Sẵn sàng để tạo commit.")
     
     def create_widgets(self):
         """Tạo các widget cho giao diện chính"""
@@ -194,6 +204,7 @@ class AutoCommitGUI:
         # Notebook (tab)
         self.notebook = ttk.Notebook(middle_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         
         # Tab 1: Thông tin
         info_frame = ttk.Frame(self.notebook, padding=10)
@@ -234,14 +245,24 @@ class AutoCommitGUI:
         
         self.commit_message_text = scrolledtext.ScrolledText(message_frame, height=10, width=80, wrap=tk.WORD)
         self.commit_message_text.pack(fill=tk.BOTH, expand=True)
+        self.commit_message_text.bind("<Control-Return>", self.on_ctrl_enter)
         
         # Frame cho các nút
         button_frame = ttk.Frame(commit_frame)
         button_frame.pack(fill=tk.X, pady=10)
         
         ttk.Button(button_frame, text="Tạo commit message", command=self.generate_message).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Tự động commit", command=self.auto_commit).pack(side=tk.LEFT, padx=5)
         ttk.Checkbutton(button_frame, text="Auto push", variable=self.auto_push).pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(button_frame, text="Auto generate", variable=self.auto_generate).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Commit", command=self.do_commit).pack(side=tk.RIGHT, padx=5)
+        
+        # Thêm tooltip
+        self.create_tooltip(button_frame.winfo_children()[0], "Tạo commit message bằng API Gemini")
+        self.create_tooltip(button_frame.winfo_children()[1], "Tự động tạo commit message và commit ngay lập tức")
+        self.create_tooltip(button_frame.winfo_children()[2], "Tự động push lên remote repository sau khi commit")
+        self.create_tooltip(button_frame.winfo_children()[3], "Tự động tạo commit message khi chuyển đến tab Commit")
+        self.create_tooltip(button_frame.winfo_children()[4], "Tạo commit với message hiện tại")
         
         # Tab 4: Log
         log_frame = ttk.Frame(self.notebook, padding=10)
@@ -476,6 +497,77 @@ class AutoCommitGUI:
         
         threading.Thread(target=generate_thread).start()
     
+    def auto_commit(self):
+        """Tự động tạo commit message và commit ngay lập tức"""
+        # Kiểm tra API key
+        if not self.settings["api_key"] or self.settings["api_key"] == "YOUR_GEMINI_API_KEY":
+            messagebox.showerror("Lỗi", "API key chưa được cấu hình. Vui lòng cấu hình API key trong phần Cài đặt.")
+            self.open_settings()
+            return
+        
+        # Kiểm tra xem có file nào được staged không
+        try:
+            diff_info = get_git_diff()
+            if not diff_info:
+                messagebox.showinfo("Thông báo", "Không có thay đổi nào để commit.")
+                return
+        except Exception as e:
+            auto_commit_logger.error(f"Lỗi khi lấy thông tin diff: {str(e)}")
+            messagebox.showerror("Lỗi", f"Lỗi khi lấy thông tin diff: {str(e)}")
+            return
+        
+        # Cập nhật trạng thái
+        self.status_var.set("Đang tự động commit...")
+        
+        # Tạo thread để không block giao diện
+        def auto_commit_thread():
+            try:
+                # Tạo commit message
+                commit_message = generate_commit_message(diff_info)
+                if not commit_message:
+                    messagebox.showerror("Lỗi", "Không thể tạo commit message.")
+                    self.status_var.set("Lỗi khi tạo commit message")
+                    return
+                
+                # Cập nhật text widget
+                self.commit_message_text.delete(1.0, tk.END)
+                self.commit_message_text.insert(tk.END, commit_message)
+                
+                # Tạo commit
+                success = create_commit(commit_message)
+                if not success:
+                    messagebox.showerror("Lỗi", "Không thể tạo commit.")
+                    self.status_var.set("Lỗi khi commit")
+                    return
+                
+                # Cập nhật trạng thái
+                self.status_var.set("Đã commit thành công")
+                
+                # Cập nhật thông tin
+                self.check_git()
+                self.refresh_diff()
+                
+                # Push nếu được chọn
+                if self.auto_push.get():
+                    self.status_var.set("Đang push...")
+                    try:
+                        success = push_to_remote()
+                        if success:
+                            self.status_var.set("Đã push thành công")
+                        else:
+                            messagebox.showerror("Lỗi", "Không thể push lên remote repository.")
+                            self.status_var.set("Lỗi khi push")
+                    except Exception as e:
+                        auto_commit_logger.error(f"Lỗi khi push: {str(e)}")
+                        messagebox.showerror("Lỗi", f"Lỗi khi push: {str(e)}")
+                        self.status_var.set("Lỗi khi push")
+            except Exception as e:
+                auto_commit_logger.error(f"Lỗi khi tự động commit: {str(e)}")
+                messagebox.showerror("Lỗi", f"Lỗi khi tự động commit: {str(e)}")
+                self.status_var.set("Lỗi")
+        
+        threading.Thread(target=auto_commit_thread).start()
+    
     def do_commit(self):
         """Thực hiện commit"""
         # Lấy commit message từ text widget
@@ -597,6 +689,52 @@ class AutoCommitGUI:
         pattern = rf"{var_name}\s*=\s*.*"
         replacement = f"{var_name} = {new_value}"
         return re.sub(pattern, replacement, content)
+    
+    def on_tab_changed(self, event):
+        """Xử lý sự kiện khi chuyển tab"""
+        selected_tab = self.notebook.index(self.notebook.select())
+        
+        # Nếu chuyển đến tab Commit (index 2)
+        if selected_tab == 2:
+            # Kiểm tra xem có thay đổi nào được staged không và có bật tự động tạo không
+            if self.auto_generate.get():
+                try:
+                    diff_info = get_git_diff()
+                    if diff_info and not self.commit_message_text.get(1.0, tk.END).strip():
+                        # Tự động tạo commit message nếu chưa có
+                        self.generate_message()
+                except Exception:
+                    # Bỏ qua lỗi nếu có
+                    pass
+    
+    def on_ctrl_enter(self, event):
+        """Xử lý sự kiện khi nhấn Ctrl+Enter trong ô commit message"""
+        self.do_commit()
+        return "break"  # Ngăn không cho sự kiện tiếp tục lan truyền
+
+    def create_tooltip(self, widget, text):
+        """Tạo tooltip cho widget"""
+        def enter(event):
+            x, y, _, _ = widget.bbox("insert")
+            x += widget.winfo_rootx() + 25
+            y += widget.winfo_rooty() + 25
+            
+            # Tạo cửa sổ tooltip
+            self.tooltip = tk.Toplevel(widget)
+            self.tooltip.wm_overrideredirect(True)
+            self.tooltip.wm_geometry(f"+{x}+{y}")
+            
+            label = ttk.Label(self.tooltip, text=text, justify=tk.LEFT,
+                             background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+                             font=("tahoma", "8", "normal"))
+            label.pack(ipadx=1)
+        
+        def leave(event):
+            if hasattr(self, "tooltip"):
+                self.tooltip.destroy()
+        
+        widget.bind("<Enter>", enter)
+        widget.bind("<Leave>", leave)
 
 def main():
     """Hàm chính của ứng dụng"""
