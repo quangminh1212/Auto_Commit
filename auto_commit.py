@@ -253,6 +253,9 @@ class AutoCommitApp:
         self.root.geometry("800x600")
         self.root.minsize(600, 400)
         
+        # Thiết lập dark theme
+        self.setup_dark_theme()
+        
         self.create_widgets()
         self.observer = None
         self.event_handler = None
@@ -264,6 +267,29 @@ class AutoCommitApp:
         
         # Tự động bắt đầu theo dõi khi khởi động
         self.start_monitoring()
+    
+    def setup_dark_theme(self):
+        """Thiết lập giao diện tối giản"""
+        self.root.configure(bg=DARK_BG)
+        
+        # Tạo style cho ttk widgets
+        self.style = ttk.Style()
+        
+        # Cấu hình màu sắc cho các widget
+        self.style.configure("TFrame", background=DARK_BG)
+        self.style.configure("TLabel", background=DARK_BG, foreground=DARK_TEXT)
+        self.style.configure("TLabelframe", background=DARK_BG, foreground=DARK_TEXT)
+        self.style.configure("TLabelframe.Label", background=DARK_BG, foreground=DARK_TEXT)
+        
+        # Cấu hình nút
+        self.style.configure("TButton", background=BUTTON_BG, foreground=DARK_TEXT)
+        self.style.map("TButton", 
+                      background=[("active", BUTTON_ACTIVE), ("pressed", ACCENT_COLOR)],
+                      foreground=[("active", DARK_TEXT)])
+        
+        # Cấu hình spinbox
+        self.style.configure("TSpinbox", background=DARKER_BG, foreground=DARK_TEXT, 
+                            fieldbackground=DARKER_BG, arrowcolor=DARK_TEXT)
         
     def create_widgets(self):
         # Frame chính
@@ -299,7 +325,7 @@ class AutoCommitApp:
         
         # Trạng thái
         self.status_var = tk.StringVar(value="Đang khởi động...")
-        status_label = ttk.Label(control_frame, textvariable=self.status_var, foreground="blue")
+        status_label = ttk.Label(control_frame, textvariable=self.status_var, foreground=ACCENT_COLOR)
         status_label.pack(side=tk.RIGHT, padx=5)
         
         # Frame log
@@ -307,7 +333,8 @@ class AutoCommitApp:
         log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
         # Widget hiển thị log
-        self.log_widget = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, font=("Consolas", 10))
+        self.log_widget = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, font=("Consolas", 10),
+                                                  bg=DARKER_BG, fg=DARK_TEXT, insertbackground=DARK_TEXT)
         self.log_widget.pack(fill=tk.BOTH, expand=True)
         self.log_widget.config(state=tk.DISABLED)
         
@@ -316,7 +343,7 @@ class AutoCommitApp:
         info_frame.pack(fill=tk.X, pady=5)
         
         repo_path = os.path.abspath('.')
-        ttk.Label(info_frame, text="Repository: {}".format(repo_path), foreground="gray").pack(anchor=tk.W)
+        ttk.Label(info_frame, text="Repository: {}".format(repo_path), foreground=ACCENT_COLOR).pack(anchor=tk.W)
         
     def update_log_widget(self):
         """Cập nhật widget log từ queue"""
@@ -324,7 +351,20 @@ class AutoCommitApp:
             try:
                 record = log_queue.get(block=False)
                 self.log_widget.config(state=tk.NORMAL)
-                self.log_widget.insert(tk.END, record + "\n")
+                
+                # Thêm màu sắc cho log
+                if "[SUCCESS]" in record:
+                    self.log_widget.insert(tk.END, record + "\n", "success")
+                    self.log_widget.tag_configure("success", foreground="#4EC9B0")
+                elif "[ERROR]" in record:
+                    self.log_widget.insert(tk.END, record + "\n", "error")
+                    self.log_widget.tag_configure("error", foreground="#F48771")
+                elif "[INFO]" in record:
+                    self.log_widget.insert(tk.END, record + "\n", "info")
+                    self.log_widget.tag_configure("info", foreground="#9CDCFE")
+                else:
+                    self.log_widget.insert(tk.END, record + "\n")
+                
                 self.log_widget.see(tk.END)
                 self.log_widget.config(state=tk.DISABLED)
             except queue.Empty:
@@ -339,6 +379,14 @@ class AutoCommitApp:
         try:
             repo_path = '.'
             self.event_handler = GitAutoCommit(repo_path)
+            
+            # Cập nhật cooldown từ UI
+            try:
+                cooldown = int(self.cooldown_var.get())
+                self.event_handler.cooldown = cooldown
+            except ValueError:
+                pass
+                
             self.observer = Observer()
             self.observer.schedule(self.event_handler, repo_path, recursive=True)
             self.observer.start()
@@ -405,7 +453,7 @@ class AutoCommitApp:
             )
             
             # Hiển thị dialog để chỉnh sửa commit message
-            dialog = CommitMessageDialog(
+            dialog = DarkThemeDialog(
                 self.root, 
                 "Tạo Commit Message", 
                 default_message,
