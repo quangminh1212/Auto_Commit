@@ -562,7 +562,7 @@ class AutoCommitGUI:
         self.refresh_button.pack(anchor=tk.W, pady=5)
         
         self.diff_text = scrolledtext.ScrolledText(diff_frame, height=20, width=80, wrap=tk.WORD,
-            bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            bg=self.theme["text_bg"], fg="#000000")
         self.diff_text.pack(fill=tk.BOTH, expand=True, pady=5)
         self.diff_text.configure(state="disabled")
         
@@ -748,6 +748,7 @@ class AutoCommitGUI:
         """Cập nhật thông tin diff"""
         self.diff_text.configure(state="normal")
         self.diff_text.delete(1.0, tk.END)
+        self.diff_text.configure(fg="#000000")
         
         try:
             # Kiểm tra xem có phải là git repository không
