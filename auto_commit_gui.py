@@ -378,32 +378,50 @@ class AutoCommitGUI:
         self.diff_text.delete(1.0, tk.END)
         
         try:
-            # Lấy danh sách các file đã thay đổi
-            staged_files = subprocess.check_output(
-                ["git", "diff", "--cached", "--name-only"],
+            # Kiểm tra xem có phải là git repository không
+            result = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                capture_output=True,
                 text=True,
                 encoding='utf-8'
-            ).strip()
+            )
             
-            if not staged_files:
-                self.diff_text.insert(tk.END, "Không có file nào được staged.")
-                self.notebook.tab(1, text="Diff (0)")
-            else:
-                # Lấy nội dung diff
-                diff_content = subprocess.check_output(
-                    ["git", "diff", "--cached"],
+            if result.returncode != 0:
+                self.diff_text.insert(tk.END, "Thư mục hiện tại không phải là git repository.")
+                self.notebook.tab(1, text="Diff (Error)")
+                self.diff_text.configure(state="disabled")
+                return
+            
+            # Lấy danh sách các file đã thay đổi
+            try:
+                staged_files = subprocess.check_output(
+                    ["git", "diff", "--cached", "--name-only"],
                     text=True,
                     encoding='utf-8'
                 ).strip()
                 
-                self.diff_text.insert(tk.END, f"Files đã thay đổi:\n{staged_files}\n\n")
-                self.diff_text.insert(tk.END, f"Nội dung diff:\n{diff_content}")
-                
-                # Cập nhật tiêu đề tab
-                file_count = len(staged_files.split("\n"))
-                self.notebook.tab(1, text=f"Diff ({file_count})")
+                if not staged_files:
+                    self.diff_text.insert(tk.END, "Không có file nào được staged.")
+                    self.notebook.tab(1, text="Diff (0)")
+                else:
+                    # Lấy nội dung diff
+                    diff_content = subprocess.check_output(
+                        ["git", "diff", "--cached"],
+                        text=True,
+                        encoding='utf-8'
+                    ).strip()
+                    
+                    self.diff_text.insert(tk.END, f"Files đã thay đổi:\n{staged_files}\n\n")
+                    self.diff_text.insert(tk.END, f"Nội dung diff:\n{diff_content}")
+                    
+                    # Cập nhật tiêu đề tab
+                    file_count = len(staged_files.split("\n"))
+                    self.notebook.tab(1, text=f"Diff ({file_count})")
+            except Exception as e:
+                self.diff_text.insert(tk.END, f"Lỗi khi lấy thông tin diff: {str(e)}")
+                self.notebook.tab(1, text="Diff (Error)")
         except Exception as e:
-            self.diff_text.insert(tk.END, f"Lỗi khi lấy thông tin diff: {str(e)}")
+            self.diff_text.insert(tk.END, f"Lỗi khi kiểm tra git: {str(e)}")
             self.notebook.tab(1, text="Diff (Error)")
         
         self.diff_text.configure(state="disabled")
@@ -496,39 +514,47 @@ class AutoCommitGUI:
         self.settings = settings
         
         # Cập nhật biến toàn cục trong auto_commit.py
-        import auto_commit
-        auto_commit.API_KEY = settings["api_key"]
-        auto_commit.MAX_DIFF_SIZE = settings["max_diff_size"]
-        auto_commit.MAX_RETRIES = settings["max_retries"]
-        auto_commit.RETRY_DELAY = settings["retry_delay"]
-        auto_commit.SIMULATION_MODE = settings["simulation_mode"]
-        
-        # Cập nhật file auto_commit.py
         try:
-            with open("auto_commit.py", 'r', encoding='utf-8') as file:
-                content = file.read()
+            import auto_commit
+            auto_commit.API_KEY = settings["api_key"]
+            auto_commit.MAX_DIFF_SIZE = settings["max_diff_size"]
+            auto_commit.MAX_RETRIES = settings["max_retries"]
+            auto_commit.RETRY_DELAY = settings["retry_delay"]
+            auto_commit.SIMULATION_MODE = settings["simulation_mode"]
             
-            # Cập nhật API_KEY
-            content = self.update_variable(content, "API_KEY", f'"{settings["api_key"]}"')
-            
-            # Cập nhật MAX_DIFF_SIZE
-            content = self.update_variable(content, "MAX_DIFF_SIZE", str(settings["max_diff_size"]))
-            
-            # Cập nhật MAX_RETRIES
-            content = self.update_variable(content, "MAX_RETRIES", str(settings["max_retries"]))
-            
-            # Cập nhật RETRY_DELAY
-            content = self.update_variable(content, "RETRY_DELAY", str(settings["retry_delay"]))
-            
-            # Cập nhật SIMULATION_MODE
-            content = self.update_variable(content, "SIMULATION_MODE", str(settings["simulation_mode"]))
-            
-            with open("auto_commit.py", 'w', encoding='utf-8') as file:
-                file.write(content)
-            
-            messagebox.showinfo("Thông báo", "Đã lưu cài đặt thành công.")
+            # Cập nhật file auto_commit.py
+            try:
+                with open("auto_commit.py", 'r', encoding='utf-8') as file:
+                    content = file.read()
+                
+                # Cập nhật API_KEY
+                content = self.update_variable(content, "API_KEY", f'"{settings["api_key"]}"')
+                
+                # Cập nhật MAX_DIFF_SIZE
+                content = self.update_variable(content, "MAX_DIFF_SIZE", str(settings["max_diff_size"]))
+                
+                # Cập nhật MAX_RETRIES
+                content = self.update_variable(content, "MAX_RETRIES", str(settings["max_retries"]))
+                
+                # Cập nhật RETRY_DELAY
+                content = self.update_variable(content, "RETRY_DELAY", str(settings["retry_delay"]))
+                
+                # Cập nhật SIMULATION_MODE
+                content = self.update_variable(content, "SIMULATION_MODE", str(settings["simulation_mode"]))
+                
+                with open("auto_commit.py", 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                messagebox.showinfo("Thông báo", "Đã lưu cài đặt thành công.")
+            except Exception as e:
+                logger.error(f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
+                messagebox.showerror("Lỗi", f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
+                
+                # Vẫn cập nhật biến toàn cục trong bộ nhớ
+                messagebox.showinfo("Thông báo", "Đã lưu cài đặt vào bộ nhớ (không cập nhật file).")
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
+            logger.error(f"Lỗi khi cập nhật cài đặt: {str(e)}")
+            messagebox.showerror("Lỗi", f"Lỗi khi cập nhật cài đặt: {str(e)}")
     
     def update_variable(self, content, var_name, new_value):
         """Cập nhật giá trị biến trong nội dung file"""
