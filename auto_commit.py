@@ -94,7 +94,10 @@ class GitAutoCommit(FileSystemEventHandler):
                 
                 # Tạo commit message với thông tin chi tiết
                 changed_files_str = ", ".join(changed_files + untracked_files)
-                commit_message = f"Auto commit at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nChanged files: {changed_files_str}"
+                commit_message = "Auto commit at {}\n\nChanged files: {}".format(
+                    datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    changed_files_str
+                )
                 
                 # Commit các thay đổi
                 self.repo.index.commit(commit_message)
@@ -103,13 +106,13 @@ class GitAutoCommit(FileSystemEventHandler):
                 try:
                     origin = self.repo.remote(name='origin')
                     origin.push()
-                    logging.info(f"[SUCCESS] Đã commit và push thành công:\n{commit_message}")
+                    logging.info("[SUCCESS] Đã commit và push thành công:\n{}".format(commit_message))
                 except Exception as e:
-                    logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
+                    logging.error("[ERROR] Lỗi khi push lên remote: {}".format(str(e)))
                     logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
             
         except Exception as e:
-            logging.error(f"[ERROR] Lỗi: {str(e)}")
+            logging.error("[ERROR] Lỗi: {}".format(str(e)))
 
 class CommitMessageDialog(simpledialog.Dialog):
     def __init__(self, parent, title, default_message, changed_files):
@@ -166,7 +169,9 @@ class CommitMessageDialog(simpledialog.Dialog):
                 diff_output = "Không thể lấy thông tin diff"
             
             # Tạo prompt cho Copilot
-            prompt = f"Tạo commit message dựa trên các thay đổi sau:\n\nCác file đã thay đổi:\n{files_info}\n\nDiff:\n{diff_output[:1000]}"
+            prompt = "Tạo commit message dựa trên các thay đổi sau:\n\nCác file đã thay đổi:\n{}\n\nDiff:\n{}".format(
+                files_info, diff_output[:1000]
+            )
             
             # Hiển thị dialog đang xử lý
             self.message_text.config(state=tk.NORMAL)
@@ -179,7 +184,7 @@ class CommitMessageDialog(simpledialog.Dialog):
             time.sleep(1)  # Giả lập thời gian xử lý
             
             # Tạo commit message dựa trên các file đã thay đổi
-            generated_message = f"feat: cập nhật {len(self.changed_files)} file\n\n"
+            generated_message = "feat: cập nhật {} file\n\n".format(len(self.changed_files))
             
             # Phân loại các thay đổi
             if any("fix" in f.lower() for f in self.changed_files):
@@ -191,14 +196,14 @@ class CommitMessageDialog(simpledialog.Dialog):
             if any("test" in f.lower() for f in self.changed_files):
                 generated_message += "- Thêm/cập nhật test cases\n"
                 
-            generated_message += f"\nCác file đã thay đổi: {', '.join(self.changed_files)}"
+            generated_message += "\nCác file đã thay đổi: {}".format(", ".join(self.changed_files))
             
             # Cập nhật text area
             self.message_text.delete(1.0, tk.END)
             self.message_text.insert(tk.END, generated_message)
             
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Không thể tạo commit message: {str(e)}")
+            messagebox.showerror("Lỗi", "Không thể tạo commit message: {}".format(str(e)))
             self.message_text.config(state=tk.NORMAL)
     
     def apply(self):
@@ -274,7 +279,7 @@ class AutoCommitApp:
         info_frame.pack(fill=tk.X, pady=5)
         
         repo_path = os.path.abspath('.')
-        ttk.Label(info_frame, text=f"Repository: {repo_path}", foreground="gray").pack(anchor=tk.W)
+        ttk.Label(info_frame, text="Repository: {}".format(repo_path), foreground="gray").pack(anchor=tk.W)
         
     def update_log_widget(self):
         """Cập nhật widget log từ queue"""
@@ -306,11 +311,11 @@ class AutoCommitApp:
             self.toggle_button.config(text="Dừng theo dõi")
             
             logging.info("[START] Bắt đầu theo dõi thay đổi trong repository...")
-            logging.info(f"[PATH] Đường dẫn repository: {os.path.abspath(repo_path)}")
+            logging.info("[PATH] Đường dẫn repository: {}".format(os.path.abspath(repo_path)))
             
         except Exception as e:
-            logging.error(f"[ERROR] Lỗi khởi động ứng dụng: {str(e)}")
-            messagebox.showerror("Lỗi", f"Không thể bắt đầu theo dõi: {str(e)}")
+            logging.error("[ERROR] Lỗi khởi động ứng dụng: {}".format(str(e)))
+            messagebox.showerror("Lỗi", "Không thể bắt đầu theo dõi: {}".format(str(e)))
     
     def stop_monitoring(self):
         """Dừng theo dõi repository"""
@@ -357,7 +362,10 @@ class AutoCommitApp:
             all_changed_files = changed_files + untracked_files
             
             # Tạo commit message mặc định
-            default_message = f"Auto commit at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nChanged files: {', '.join(all_changed_files)}"
+            default_message = "Auto commit at {}\n\nChanged files: {}".format(
+                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                ", ".join(all_changed_files)
+            )
             
             # Hiển thị dialog để chỉnh sửa commit message
             dialog = CommitMessageDialog(
@@ -377,14 +385,14 @@ class AutoCommitApp:
                 try:
                     origin = repo.remote(name='origin')
                     origin.push()
-                    logging.info(f"[SUCCESS] Đã commit và push thành công (với message tùy chỉnh):\n{safe_message}")
+                    logging.info("[SUCCESS] Đã commit và push thành công (với message tùy chỉnh):\n{}".format(safe_message))
                 except Exception as e:
-                    logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
+                    logging.error("[ERROR] Lỗi khi push lên remote: {}".format(str(e)))
                     logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
                 
         except Exception as e:
-            logging.error(f"[ERROR] Lỗi khi tạo commit message: {str(e)}")
-            messagebox.showerror("Lỗi", f"Không thể tạo commit message: {str(e)}")
+            logging.error("[ERROR] Lỗi khi tạo commit message: {}".format(str(e)))
+            messagebox.showerror("Lỗi", "Không thể tạo commit message: {}".format(str(e)))
     
     def force_commit(self):
         """Thực hiện commit ngay lập tức"""
@@ -407,7 +415,10 @@ class AutoCommitApp:
             
             # Tạo commit message
             changed_files_str = ", ".join(changed_files + untracked_files)
-            commit_message = f"Manual commit at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nChanged files: {changed_files_str}"
+            commit_message = "Manual commit at {}\n\nChanged files: {}".format(
+                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                changed_files_str
+            )
             
             # Đảm bảo commit message là chuỗi ASCII hoặc UTF-8 hợp lệ
             safe_message = commit_message.encode('utf-8', errors='replace').decode('utf-8')
@@ -419,14 +430,14 @@ class AutoCommitApp:
             try:
                 origin = repo.remote(name='origin')
                 origin.push()
-                logging.info(f"[SUCCESS] Đã commit và push thành công (thủ công):\n{safe_message}")
+                logging.info("[SUCCESS] Đã commit và push thành công (thủ công):\n{}".format(safe_message))
             except Exception as e:
-                logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
+                logging.error("[ERROR] Lỗi khi push lên remote: {}".format(str(e)))
                 logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
                 
         except Exception as e:
-            logging.error(f"[ERROR] Lỗi khi commit thủ công: {str(e)}")
-            messagebox.showerror("Lỗi", f"Không thể commit: {str(e)}")
+            logging.error("[ERROR] Lỗi khi commit thủ công: {}".format(str(e)))
+            messagebox.showerror("Lỗi", "Không thể commit: {}".format(str(e)))
     
     def clear_log(self):
         """Xóa nội dung log widget"""
@@ -454,5 +465,5 @@ if __name__ == "__main__":
         root.mainloop()
         
     except Exception as e:
-        logging.error(f"[ERROR] Lỗi khởi động ứng dụng: {str(e)}")
+        logging.error("[ERROR] Lỗi khởi động ứng dụng: {}".format(str(e)))
         sys.exit(1) 
