@@ -1,0 +1,10 @@
+[
+    {
+        "key": "ctrl+alt+c",
+        "command": "workbench.action.terminal.sendSequence",
+        "args": {
+            "text": "& \"${workspaceFolder}\\scripts\\auto-commit.ps1\"\n"
+        },
+        "when": "editorTextFocus"
+    }
+] 
