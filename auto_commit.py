@@ -6,8 +6,13 @@ from git import Repo
 import datetime
 import logging
 import sys
+import tkinter as tk
+from tkinter import scrolledtext, ttk, messagebox
+import threading
+import queue
 
-# Cấu hình logging
+# Cấu hình logging với custom handler để gửi log đến giao diện
+log_queue = queue.Queue()
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(message)s',
@@ -17,12 +22,26 @@ logging.basicConfig(
     ]
 )
 
+# Thêm handler để gửi log đến queue
+class QueueHandler(logging.Handler):
+    def __init__(self, log_queue):
+        super().__init__()
+        self.log_queue = log_queue
+
+    def emit(self, record):
+        self.log_queue.put(self.format(record))
+
+queue_handler = QueueHandler(log_queue)
+queue_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+logging.getLogger().addHandler(queue_handler)
+
 class GitAutoCommit(FileSystemEventHandler):
     def __init__(self, repo_path='.'):
         self.repo_path = repo_path
         self.repo = Repo(repo_path)
         self.last_modified = 0
         self.cooldown = 5  # Thời gian chờ giữa các lần commit (giây)
+        self.is_active = True  # Trạng thái theo dõi
         
         # Các file và thư mục sẽ được bỏ qua
         self.ignored_patterns = [
@@ -47,6 +66,9 @@ class GitAutoCommit(FileSystemEventHandler):
         return False
 
     def on_modified(self, event):
+        if not self.is_active:
+            return
+            
         if event.is_directory:
             return
             
@@ -87,24 +109,189 @@ class GitAutoCommit(FileSystemEventHandler):
         except Exception as e:
             logging.error(f"[ERROR] Lỗi: {str(e)}")
 
+class AutoCommitApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Auto Commit Tool")
+        self.root.geometry("800x600")
+        self.root.minsize(600, 400)
+        
+        self.create_widgets()
+        self.observer = None
+        self.event_handler = None
+        self.is_running = False
+        
+        # Bắt đầu thread để cập nhật log
+        self.log_update_thread = threading.Thread(target=self.update_log_widget, daemon=True)
+        self.log_update_thread.start()
+        
+        # Tự động bắt đầu theo dõi khi khởi động
+        self.start_monitoring()
+        
+    def create_widgets(self):
+        # Frame chính
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Frame điều khiển
+        control_frame = ttk.LabelFrame(main_frame, text="Điều khiển", padding="10")
+        control_frame.pack(fill=tk.X, pady=5)
+        
+        # Nút Start/Stop
+        self.toggle_button = ttk.Button(control_frame, text="Dừng theo dõi", command=self.toggle_monitoring)
+        self.toggle_button.pack(side=tk.LEFT, padx=5)
+        
+        # Nút Force Commit
+        self.force_commit_button = ttk.Button(control_frame, text="Commit ngay", command=self.force_commit)
+        self.force_commit_button.pack(side=tk.LEFT, padx=5)
+        
+        # Nút Clear Log
+        self.clear_log_button = ttk.Button(control_frame, text="Xóa log", command=self.clear_log)
+        self.clear_log_button.pack(side=tk.LEFT, padx=5)
+        
+        # Cooldown setting
+        ttk.Label(control_frame, text="Thời gian chờ (giây):").pack(side=tk.LEFT, padx=(20, 5))
+        self.cooldown_var = tk.StringVar(value="5")
+        cooldown_spinbox = ttk.Spinbox(control_frame, from_=1, to=60, textvariable=self.cooldown_var, width=5)
+        cooldown_spinbox.pack(side=tk.LEFT)
+        
+        # Trạng thái
+        self.status_var = tk.StringVar(value="Đang khởi động...")
+        status_label = ttk.Label(control_frame, textvariable=self.status_var, foreground="blue")
+        status_label.pack(side=tk.RIGHT, padx=5)
+        
+        # Frame log
+        log_frame = ttk.LabelFrame(main_frame, text="Log", padding="10")
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Widget hiển thị log
+        self.log_widget = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, font=("Consolas", 10))
+        self.log_widget.pack(fill=tk.BOTH, expand=True)
+        self.log_widget.config(state=tk.DISABLED)
+        
+        # Thông tin
+        info_frame = ttk.Frame(main_frame)
+        info_frame.pack(fill=tk.X, pady=5)
+        
+        repo_path = os.path.abspath('.')
+        ttk.Label(info_frame, text=f"Repository: {repo_path}", foreground="gray").pack(anchor=tk.W)
+        
+    def update_log_widget(self):
+        """Cập nhật widget log từ queue"""
+        while True:
+            try:
+                record = log_queue.get(block=False)
+                self.log_widget.config(state=tk.NORMAL)
+                self.log_widget.insert(tk.END, record + "\n")
+                self.log_widget.see(tk.END)
+                self.log_widget.config(state=tk.DISABLED)
+            except queue.Empty:
+                time.sleep(0.1)
+                continue
+    
+    def start_monitoring(self):
+        """Bắt đầu theo dõi repository"""
+        if self.is_running:
+            return
+            
+        try:
+            repo_path = '.'
+            self.event_handler = GitAutoCommit(repo_path)
+            self.observer = Observer()
+            self.observer.schedule(self.event_handler, repo_path, recursive=True)
+            self.observer.start()
+            
+            self.is_running = True
+            self.status_var.set("Đang theo dõi")
+            self.toggle_button.config(text="Dừng theo dõi")
+            
+            logging.info("[START] Bắt đầu theo dõi thay đổi trong repository...")
+            logging.info(f"[PATH] Đường dẫn repository: {os.path.abspath(repo_path)}")
+            
+        except Exception as e:
+            logging.error(f"[ERROR] Lỗi khởi động ứng dụng: {str(e)}")
+            messagebox.showerror("Lỗi", f"Không thể bắt đầu theo dõi: {str(e)}")
+    
+    def stop_monitoring(self):
+        """Dừng theo dõi repository"""
+        if not self.is_running:
+            return
+            
+        if self.observer:
+            self.observer.stop()
+            self.observer.join()
+            self.observer = None
+            
+        self.is_running = False
+        self.status_var.set("Đã dừng")
+        self.toggle_button.config(text="Bắt đầu theo dõi")
+        
+        logging.info("[STOP] Đã dừng theo dõi repository")
+    
+    def toggle_monitoring(self):
+        """Bật/tắt theo dõi repository"""
+        if self.is_running:
+            self.stop_monitoring()
+        else:
+            self.start_monitoring()
+    
+    def force_commit(self):
+        """Thực hiện commit ngay lập tức"""
+        if not self.is_running or not self.event_handler:
+            messagebox.showinfo("Thông báo", "Vui lòng bắt đầu theo dõi trước khi commit")
+            return
+            
+        try:
+            repo = self.event_handler.repo
+            
+            if not repo.is_dirty(untracked_files=True):
+                messagebox.showinfo("Thông báo", "Không có thay đổi để commit")
+                return
+                
+            # Add tất cả các file đã thay đổi
+            changed_files = [item.a_path for item in repo.index.diff(None)]
+            untracked_files = repo.untracked_files
+            
+            repo.git.add(all=True)
+            
+            # Tạo commit message
+            changed_files_str = ", ".join(changed_files + untracked_files)
+            commit_message = f"Manual commit at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nChanged files: {changed_files_str}"
+            
+            # Commit các thay đổi
+            repo.index.commit(commit_message)
+            
+            # Push lên remote repository
+            try:
+                origin = repo.remote(name='origin')
+                origin.push()
+                logging.info(f"[SUCCESS] Đã commit và push thành công (thủ công):\n{commit_message}")
+            except Exception as e:
+                logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
+                logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
+                
+        except Exception as e:
+            logging.error(f"[ERROR] Lỗi khi commit thủ công: {str(e)}")
+            messagebox.showerror("Lỗi", f"Không thể commit: {str(e)}")
+    
+    def clear_log(self):
+        """Xóa nội dung log widget"""
+        self.log_widget.config(state=tk.NORMAL)
+        self.log_widget.delete(1.0, tk.END)
+        self.log_widget.config(state=tk.DISABLED)
+        
+    def on_closing(self):
+        """Xử lý khi đóng ứng dụng"""
+        if messagebox.askokcancel("Thoát", "Bạn có muốn thoát ứng dụng?"):
+            self.stop_monitoring()
+            self.root.destroy()
+
 if __name__ == "__main__":
     try:
-        repo_path = '.'  # Đường dẫn tới repository
-        event_handler = GitAutoCommit(repo_path)
-        observer = Observer()
-        observer.schedule(event_handler, repo_path, recursive=True)
-        observer.start()
-        
-        logging.info("[START] Bắt đầu theo dõi thay đổi trong repository...")
-        logging.info(f"[PATH] Đường dẫn repository: {os.path.abspath(repo_path)}")
-        
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            observer.stop()
-            logging.info("[STOP] Đã dừng theo dõi repository")
-        observer.join()
+        root = tk.Tk()
+        app = AutoCommitApp(root)
+        root.protocol("WM_DELETE_WINDOW", app.on_closing)
+        root.mainloop()
         
     except Exception as e:
         logging.error(f"[ERROR] Lỗi khởi động ứng dụng: {str(e)}")
