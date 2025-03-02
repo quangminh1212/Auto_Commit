@@ -21,7 +21,7 @@ logger = logging.getLogger('auto_commit')
 
 # Cấu hình API Gemini
 API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"  # API key đã được cập nhật
-API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"  # URL API đã được cập nhật
 
 # Kích thước tối đa của diff content để gửi đến API (để tránh vượt quá giới hạn)
 MAX_DIFF_SIZE = 3000

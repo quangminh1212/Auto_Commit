@@ -1,1 +1,4 @@
 2025-03-02 09:32:02 - chore: auto commit at 2025-03-02 09:32:02
+2025-03-02 09:32:26 - chore: Improve error handling and logging
+
+Improve error handling in `auto_commit.bat` and `auto_commit.py` to provide more informative error messages and handle cases where Python or required libraries are not installed.  Added UTF-8 encoding to the log file handler.  Updated requirements.txt.
