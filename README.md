@@ -90,9 +90,9 @@ Chạy file `quick-install.bat` để cài đặt extension một cách nhanh ch
 4. Gõ "Extensions: Install from VSIX" và chọn file `extension\auto-commit-copilot-0.0.1.vsix`
 
 #### Từ mã nguồn (chế độ debug)
-1. Chạy script `debug-extension.ps1` để chuẩn bị và chạy extension trong chế độ debug:
+1. Chạy script `debug-extension.bat` để chuẩn bị và chạy extension trong chế độ debug:
    ```
-   .\debug-extension.ps1
+   .\debug-extension.bat
    ```
 2. Làm theo hướng dẫn trên màn hình để chạy extension trong chế độ debug
 
