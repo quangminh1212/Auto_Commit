@@ -23,8 +23,8 @@
     "keybindings": [
       {
         "command": "auto-commit-copilot.autoCommit",
-        "key": "ctrl+alt+c",
-        "mac": "cmd+alt+c",
+        "key": "ctrl+space",
+        "mac": "cmd+space",
         "when": "editorTextFocus"
       }
     ],

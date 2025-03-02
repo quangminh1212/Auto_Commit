@@ -29,7 +29,7 @@ Extension này cung cấp một lệnh và phím tắt để tự động:
 1. Thực hiện các thay đổi trong dự án của bạn
 2. Stage các thay đổi bạn muốn commit
 3. Sử dụng một trong các cách sau:
-   - Nhấn phím tắt `Ctrl+Alt+C` (Windows/Linux) hoặc `Cmd+Alt+C` (Mac)
+   - Nhấn phím tắt `Ctrl+Space` (Windows/Linux) hoặc `Cmd+Space` (Mac)
    - Nhấn chuột phải trong editor và chọn "Auto Commit với Copilot" từ menu ngữ cảnh
    - Mở Command Palette (Ctrl+Shift+P) và gõ "Auto Commit với Copilot"
 
