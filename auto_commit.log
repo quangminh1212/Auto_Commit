@@ -124,3 +124,28 @@ feat: add new feature
 2025-03-02 10:21:34,206 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\Users\\GHC\\AppData\\Local\\Temp\\tmpfmg0vpkl", "git_version": "git version 2.46.2.windows.1"}
 2025-03-02 10:21:34,406 - INFO - Dang push len remote repository...
 2025-03-02 10:21:34,406 - INFO - Da push len remote repository thanh cong.
+2025-03-02 10:21:49,319 - INFO - Bat dau qua trinh auto commit...
+2025-03-02 10:21:49,377 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\VF\\Auto_Commit", "git_version": "git version 2.46.2.windows.1"}
+2025-03-02 10:21:49,484 - ERROR - Da xay ra loi khong mong muon: 'charmap' codec can't decode byte 0x8f in position 2323: character maps to <undefined>
+Traceback (most recent call last):
+  File "C:\VF\Auto_Commit\auto_commit.py", line 365, in <module>
+    main()
+  File "C:\VF\Auto_Commit\auto_commit.py", line 343, in main
+    diff_info = get_git_diff()
+                ^^^^^^^^^^^^^^
+  File "C:\VF\Auto_Commit\auto_commit.py", line 111, in get_git_diff
+    diff_content = subprocess.check_output(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\subprocess.py", line 1196, in communicate
+    stdout = self.stdout.read()
+             ^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x8f in position 2323: character maps to <undefined>

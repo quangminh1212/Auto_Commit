@@ -88,42 +88,40 @@ def check_api_key() -> bool:
     return True
 
 def get_git_diff() -> Optional[Dict[str, Any]]:
-    """Lấy thông tin về các thay đổi trong git"""
+    """Lấy thông tin về các thay đổi đã được staged trong Git."""
     if SIMULATION_MODE:
         return _get_simulated_diff()
     
     try:
-        # Kiểm tra xem có phải là git repository không
-        subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], 
-                      check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Lấy danh sách các file đã thay đổi
+        # Kiểm tra xem có thay đổi nào đã được staged hay không
         staged_files = subprocess.check_output(
-            ["git", "diff", "--staged", "--name-only"], 
-            text=True
+            ["git", "diff", "--cached", "--name-only"],
+            text=True,
+            encoding='utf-8'
         ).strip()
         
         if not staged_files:
-            logger.info("Khong co file nao duoc staged de commit.")
+            logger.info("Khong co file nao duoc staged.")
             return None
-            
-        # Lấy nội dung thay đổi
+        
+        # Lấy nội dung diff
         diff_content = subprocess.check_output(
-            ["git", "diff", "--staged"], 
-            text=True
+            ["git", "diff", "--cached"],
+            text=True,
+            encoding='utf-8'
         ).strip()
         
-        # Giới hạn kích thước diff_content để tránh vượt quá giới hạn của API
+        # Kiểm tra kích thước diff
         if len(diff_content) > MAX_DIFF_SIZE:
-            logger.warning(f"Noi dung diff qua lon ({len(diff_content)} ky tu), se duoc cat ngan.")
-            diff_content = diff_content[:MAX_DIFF_SIZE] + "\n... (noi dung con lai da bi cat bot)"
+            logger.warning(f"Kich thuoc diff ({len(diff_content)} bytes) vuot qua gioi han ({MAX_DIFF_SIZE} bytes).")
+            diff_content = diff_content[:MAX_DIFF_SIZE] + "\n... (noi dung bi cat bot do qua dai)"
         
         return {
             "staged_files": staged_files.split("\n"),
             "diff_content": diff_content
         }
     except subprocess.CalledProcessError as e:
-        logger.error(f"Loi khi lay thong tin git: {e}")
+        logger.error(f"Loi khi lay thong tin diff: {str(e)}")
         return None
 
 def _get_simulated_diff() -> Dict[str, Any]:
