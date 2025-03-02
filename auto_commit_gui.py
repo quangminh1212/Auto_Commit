@@ -185,15 +185,15 @@ THEMES = {
         "tooltip_fg": "#000000"
     },
     "dark": {
-        "bg": "#2d2d2d",
+        "bg": "#1e1e1e",  # Tối hơn
         "fg": "#ffffff",
-        "text_bg": "#3d3d3d",
-        "text_fg": "#ffffff",
-        "button_bg": "#444444",
+        "text_bg": "#2d2d2d",  # Tối hơn một chút so với nền
+        "text_fg": "#e0e0e0",  # Sáng hơn để dễ đọc
+        "button_bg": "#3d3d3d",  # Sáng hơn nền một chút
         "button_fg": "#ffffff",
-        "highlight_bg": "#555555",
+        "highlight_bg": "#4d4d4d",  # Sáng hơn nữa để làm nổi bật
         "highlight_fg": "#ffffff",
-        "tooltip_bg": "#555555",
+        "tooltip_bg": "#4d4d4d",
         "tooltip_fg": "#ffffff"
     }
 }

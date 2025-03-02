@@ -25,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger('auto_commit')
 
 # Cấu hình API Gemini
-API_KEY = "YOUR_GEMINI_API_KEY"
+API_KEY = ""
 API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
 
 # Cấu hình chung
@@ -62,7 +62,7 @@ def check_git_installed() -> bool:
 def check_api_key() -> bool:
     """Kiểm tra xem API key đã được cấu hình chưa"""
     global API_KEY
-    if API_KEY == "YOUR_GEMINI_API_KEY":
+    if API_KEY = ""
         logger.warning("API key chua duoc cau hinh.")
         
         # Hỏi người dùng có muốn nhập API key không
@@ -73,13 +73,13 @@ def check_api_key() -> bool:
                 with open(__file__, 'r', encoding='utf-8') as file:
                     content = file.read()
                 
-                content = content.replace('API_KEY = "YOUR_GEMINI_API_KEY"', f'API_KEY = "{api_key}"')
+                content = content.replace('API_KEY = ""
                 
                 with open(__file__, 'w', encoding='utf-8') as file:
                     file.write(content)
                 
                 # Cập nhật biến toàn cục
-                API_KEY = api_key
+                API_KEY = ""
                 
                 logger.info("API key da duoc cap nhat.")
                 return True
