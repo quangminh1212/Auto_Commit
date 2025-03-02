@@ -8,6 +8,16 @@ import subprocess
 import logging
 from typing import Dict, Any, Optional, List, Callable
 
+# Cấu hình logging trước khi import auto_commit
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("auto_commit_gui.log", mode="a", encoding="utf-8")
+    ]
+)
+
 # Import các hàm từ auto_commit.py
 try:
     from auto_commit import (
@@ -15,8 +25,9 @@ try:
         check_git_installed, check_api_key, push_to_remote, 
         get_system_info, logger, API_KEY, SIMULATION_MODE
     )
-except ImportError:
-    messagebox.showerror("Lỗi", "Không thể import từ auto_commit.py. Đảm bảo file này tồn tại trong cùng thư mục.")
+except ImportError as e:
+    print(f"Lỗi khi import từ auto_commit.py: {e}")
+    messagebox.showerror("Lỗi", f"Không thể import từ auto_commit.py: {e}. Đảm bảo file này tồn tại trong cùng thư mục.")
     sys.exit(1)
 
 class RedirectText:
@@ -137,7 +148,7 @@ class AutoCommitGUI:
         
         # Cài đặt mặc định
         self.settings = {
-            "api_key": API_KEY,
+            "api_key": API_KEY if API_KEY != "YOUR_GEMINI_API_KEY" else "",
             "max_diff_size": 3000,
             "max_retries": 3,
             "retry_delay": 2,
@@ -149,8 +160,8 @@ class AutoCommitGUI:
         self.center_window()
         
         # Hiển thị dialog cài đặt khi khởi động nếu API key chưa được cấu hình
-        if API_KEY == "YOUR_GEMINI_API_KEY" or API_KEY == "":
-            self.open_settings()
+        if self.settings["api_key"] == "" or self.settings["api_key"] == "YOUR_GEMINI_API_KEY":
+            self.root.after(500, self.open_settings)  # Sử dụng after để đảm bảo giao diện đã được tạo
         
         # Kiểm tra Git
         self.check_git()
