@@ -16,7 +16,7 @@ import io
 # Cấu hình logging với custom handler để gửi log đến giao diện
 log_queue = queue.Queue()
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO, 
     format='%(asctime)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
