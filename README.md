@@ -43,17 +43,25 @@ Extension này cung cấp một lệnh và phím tắt để tự động:
 
 ### Cài đặt
 
+#### Sử dụng script tự động
+1. Chạy script `run-extension.ps1` để đóng gói và cài đặt extension:
+   ```
+   .\run-extension.ps1
+   ```
+2. Làm theo hướng dẫn trên màn hình để cài đặt extension
+
 #### Từ VSIX
 1. Đóng gói extension theo hướng dẫn trong file `extension/HƯỚNG_DẪN.md`
 2. Mở VS Code
 3. Nhấn F1 hoặc Ctrl+Shift+P để mở Command Palette
 4. Gõ "Extensions: Install from VSIX" và chọn file VSIX đã tạo
 
-#### Từ mã nguồn
-1. Mở thư mục extension trong terminal
-2. Chạy `npm install` để cài đặt các dependencies
-3. Chạy `npm run compile` để biên dịch TypeScript
-4. Nhấn F5 để chạy extension trong chế độ debug
+#### Từ mã nguồn (chế độ debug)
+1. Chạy script `debug-extension.ps1` để chuẩn bị và chạy extension trong chế độ debug:
+   ```
+   .\debug-extension.ps1
+   ```
+2. Làm theo hướng dẫn trên màn hình để chạy extension trong chế độ debug
 
 ### Cách sử dụng
 
@@ -68,6 +76,43 @@ Extension này cung cấp một lệnh và phím tắt để tự động:
 
 - Visual Studio Code 1.60.0 trở lên
 - GitHub Copilot extension đã được cài đặt và cấu hình
+- Node.js và npm
+
+## Phát triển
+
+### Môi trường ảo
+
+Dự án này sử dụng môi trường ảo để quản lý dependencies:
+
+1. Cài đặt virtualenv (nếu chưa có):
+   ```
+   python -m pip install virtualenv
+   ```
+
+2. Tạo môi trường ảo:
+   ```
+   python -m virtualenv venv
+   ```
+
+3. Kích hoạt môi trường ảo:
+   - Windows (PowerShell):
+     ```
+     .\venv\Scripts\Activate.ps1
+     ```
+   - Windows (Command Prompt):
+     ```
+     .\venv\Scripts\activate.bat
+     ```
+   - Linux/Mac:
+     ```
+     source venv/bin/activate
+     ```
+
+4. Cài đặt dependencies cho extension:
+   ```
+   cd extension
+   npm install
+   ```
 
 ## Tùy chỉnh
 
