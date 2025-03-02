@@ -8,6 +8,9 @@ Công cụ tự động tạo commit message theo chuẩn Conventional Commits s
 - Tạo commit message theo chuẩn [Conventional Commits](https://www.conventionalcommits.org/) dựa trên nội dung thay đổi
 - Sử dụng AI (Google Gemini) để phân tích thay đổi và tạo commit message phù hợp
 - Hỗ trợ tự động push lên remote repository
+- Tự động test và tối ưu mã nguồn
+- Xử lý lỗi mạnh mẽ và logging chi tiết
+- Kiểm tra tự động các yêu cầu hệ thống
 
 ## Yêu cầu
 
@@ -25,12 +28,13 @@ Công cụ tự động tạo commit message theo chuẩn Conventional Commits s
 
 2. Cài đặt các thư viện Python cần thiết:
    ```
-   pip install requests
+   pip install -r requirements.txt
    ```
 
 3. Cấu hình API key:
    - Đăng ký và lấy API key từ [Google AI Studio](https://makersuite.google.com/app/apikey)
    - Mở file `auto_commit.py` và thay thế `YOUR_GEMINI_API_KEY` bằng API key của bạn
+   - Hoặc chạy `auto_commit.bat` và nhập API key khi được yêu cầu
 
 ## Cách sử dụng
 
@@ -45,9 +49,31 @@ Công cụ tự động tạo commit message theo chuẩn Conventional Commits s
    - Chọn Y để stage tất cả các thay đổi
    - Chọn N để thoát và stage thủ công
 
-4. Công cụ sẽ tự động tạo commit message dựa trên các thay đổi và thực hiện commit
+4. Công cụ sẽ hỏi bạn có muốn chạy test trước khi commit không
+   - Chọn Y để chạy test
+   - Chọn N để bỏ qua test
 
-5. Sau khi commit thành công, công cụ sẽ hỏi bạn có muốn push lên remote repository không
+5. Công cụ sẽ tự động tạo commit message dựa trên các thay đổi và thực hiện commit
+
+6. Sau khi commit thành công, công cụ sẽ hỏi bạn có muốn push lên remote repository không
+
+## Test và Tối ưu
+
+Công cụ này cung cấp tính năng tự động test và tối ưu:
+
+1. Chạy file batch để test và tối ưu:
+   ```
+   test_and_optimize.bat
+   ```
+
+2. Quá trình này sẽ:
+   - Kiểm tra các yêu cầu hệ thống (Python, Git)
+   - Cài đặt các thư viện cần thiết
+   - Chạy các test case để đảm bảo tất cả các chức năng hoạt động đúng
+   - Tối ưu mã nguồn dựa trên kết quả test
+   - Kiểm tra và cập nhật API key nếu cần
+
+3. Bạn cũng có thể chạy test trước mỗi lần commit bằng cách chọn Y khi được hỏi trong quá trình commit
 
 ## Cấu trúc Conventional Commits
 
@@ -68,9 +94,29 @@ Trong đó:
 - **body**: Mô tả chi tiết hơn (tùy chọn)
 - **footer**: Thông tin bổ sung như breaking changes, closed issues (tùy chọn)
 
+## Cấu trúc dự án
+
+- `auto_commit.py`: Script Python chính để tạo commit message và thực hiện commit
+- `auto_commit.bat`: File batch để chạy quá trình commit
+- `test_auto_commit.py`: Script Python để test các chức năng
+- `test_and_optimize.bat`: File batch để chạy test và tối ưu
+- `requirements.txt`: Danh sách các thư viện Python cần thiết
+
 ## Tùy chỉnh
 
-Bạn có thể tùy chỉnh prompt trong file `auto_commit.py` để thay đổi cách AI tạo commit message.
+Bạn có thể tùy chỉnh các tham số trong file `auto_commit.py`:
+
+- `MAX_DIFF_SIZE`: Kích thước tối đa của diff content để gửi đến API (mặc định: 3000 ký tự)
+- Prompt cho Gemini: Bạn có thể thay đổi prompt để tạo commit message theo ý muốn
+
+## Xử lý lỗi
+
+Công cụ này bao gồm xử lý lỗi mạnh mẽ:
+
+- Kiểm tra tự động các yêu cầu hệ thống (Python, Git)
+- Kiểm tra API key đã được cấu hình chưa
+- Xử lý các lỗi khi gọi API Gemini
+- Logging chi tiết để dễ dàng gỡ lỗi
 
 ## Giấy phép
 
