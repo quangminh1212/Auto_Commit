@@ -8,6 +8,7 @@ import shutil
 import platform
 from unittest.mock import patch, MagicMock
 from io import StringIO
+from typing import Dict, Any, Optional
 
 # Kiểm tra xem Git đã được cài đặt chưa
 GIT_INSTALLED = True
@@ -18,7 +19,13 @@ except (subprocess.SubprocessError, FileNotFoundError):
 
 # Import các hàm từ auto_commit.py
 try:
-    from auto_commit import get_git_diff, generate_commit_message, create_commit, main, check_git_installed, check_api_key, SIMULATION_MODE
+    from auto_commit import (
+        get_git_diff, generate_commit_message, create_commit, main, 
+        check_git_installed, check_api_key, SIMULATION_MODE, 
+        _get_simulated_diff, _call_gemini_api, _create_simulated_commit,
+        push_to_remote, get_system_info, _generate_default_commit_message,
+        COMMIT_HISTORY_FILE, MAX_RETRIES, RETRY_DELAY
+    )
 except ImportError as e:
     print(f"Lỗi khi import từ auto_commit.py: {e}")
     print("Đảm bảo rằng file auto_commit.py tồn tại trong thư mục hiện tại.")
@@ -96,6 +103,44 @@ class TestAutoCommit(unittest.TestCase):
             self.assertIn("test_file.txt", result["staged_files"])
             self.assertIn("Modified content", result["diff_content"])
     
+    def test_get_simulated_diff(self):
+        """Test tạo dữ liệu diff giả lập"""
+        with patch("auto_commit.SIMULATION_MODE", True):
+            result = _get_simulated_diff()
+            self.assertIsNotNone(result)
+            self.assertIn("staged_files", result)
+            self.assertIn("diff_content", result)
+    
+    @patch("auto_commit.requests.post")
+    def test_call_gemini_api(self, mock_post):
+        """Test gọi API Gemini"""
+        # Mock response từ API
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": "feat: add new feature"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+        mock_post.return_value = mock_response
+        
+        # Kiểm tra kết quả
+        result = _call_gemini_api("Test prompt")
+        self.assertEqual(result, "feat: add new feature")
+        
+        # Test lỗi API
+        mock_response.status_code = 400
+        result = _call_gemini_api("Test prompt")
+        self.assertTrue(result.startswith("chore: auto commit at"))
+    
     @patch("auto_commit.requests.post")
     def test_generate_commit_message(self, mock_post):
         """Test tạo commit message với API Gemini"""
@@ -128,6 +173,25 @@ class TestAutoCommit(unittest.TestCase):
             result = generate_commit_message(diff_info)
             self.assertEqual(result, "feat: add new feature")
     
+    def test_generate_default_commit_message(self):
+        """Test tạo commit message mặc định"""
+        result = _generate_default_commit_message()
+        self.assertTrue(result.startswith("chore: auto commit at"))
+    
+    def test_create_simulated_commit(self):
+        """Test tạo commit giả lập"""
+        # Tạo file tạm thời cho commit history
+        temp_history_file = os.path.join(self.test_dir, "temp_history.txt")
+        
+        with patch("auto_commit.COMMIT_HISTORY_FILE", temp_history_file):
+            result = _create_simulated_commit("feat: test commit")
+            self.assertTrue(result)
+            
+            # Kiểm tra file history
+            with open(temp_history_file, 'r') as f:
+                content = f.read()
+                self.assertIn("feat: test commit", content)
+    
     @unittest.skipIf(not GIT_INSTALLED and not SIMULATION_MODE, "Git không được cài đặt và không ở chế độ mô phỏng")
     @patch("auto_commit.subprocess.run")
     def test_create_commit(self, mock_run):
@@ -145,8 +209,25 @@ class TestAutoCommit(unittest.TestCase):
             )
         else:
             # Trong chế độ mô phỏng
-            result = create_commit("feat: add new feature")
-            self.assertTrue(result)
+            with patch("auto_commit._create_simulated_commit", return_value=True) as mock_sim:
+                result = create_commit("feat: add new feature")
+                self.assertTrue(result)
+                mock_sim.assert_called_once_with("feat: add new feature")
+    
+    @unittest.skipIf(not GIT_INSTALLED, "Git không được cài đặt")
+    @patch("auto_commit.subprocess.run")
+    def test_push_to_remote(self, mock_run):
+        """Test push lên remote repository"""
+        # Mock subprocess.run
+        mock_run.return_value = MagicMock(returncode=0)
+        
+        # Kiểm tra kết quả
+        result = push_to_remote()
+        self.assertTrue(result)
+        mock_run.assert_called_once_with(
+            ["git", "push"], 
+            check=True
+        )
     
     @patch("auto_commit.get_git_diff")
     @patch("auto_commit.generate_commit_message")
@@ -184,9 +265,9 @@ class TestAutoCommit(unittest.TestCase):
             output = fake_out.getvalue()
         
         # Kiểm tra output
-        self.assertIn("Không có thay đổi nào để commit", output)
+        self.assertIn("Khong co thay doi nao de commit", output)
 
-def get_system_info():
+def get_system_info() -> Dict[str, str]:
     """Lấy thông tin hệ thống để gỡ lỗi"""
     info = {
         "os": platform.system(),
@@ -204,7 +285,7 @@ def get_system_info():
     
     return info
 
-def run_tests():
+def run_tests() -> None:
     """Chạy tất cả các test"""
     # Hiển thị thông tin hệ thống
     system_info = get_system_info()
@@ -216,7 +297,7 @@ def run_tests():
     # Chạy các test
     unittest.main(argv=['first-arg-is-ignored'], exit=False)
 
-def optimize_code():
+def optimize_code() -> None:
     """Tối ưu mã nguồn dựa trên kết quả test"""
     print("Đang tối ưu mã nguồn...")
     

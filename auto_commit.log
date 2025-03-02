@@ -39,3 +39,7 @@
 2025-03-02 09:32:56,369 - INFO - Da tao commit message thanh cong.
 2025-03-02 09:32:56,369 - INFO - Dang mo phong tao commit...
 2025-03-02 09:32:56,370 - INFO - Da luu commit message vao commit_history.txt
+2025-03-02 10:20:12,927 - INFO - Bat dau qua trinh auto commit...
+2025-03-02 10:20:13,023 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\VF\\Auto_Commit", "git_version": "git version 2.46.2.windows.1"}
+2025-03-02 10:20:13,096 - INFO - Khong co file nao duoc staged de commit.
+2025-03-02 10:20:13,096 - INFO - Khong co thay doi nao de commit.
