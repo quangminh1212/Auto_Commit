@@ -1,91 +1,91 @@
-# Auto Commit với Copilot
+# Auto Commit with Copilot
 
-Dự án này cung cấp hai phương pháp để tự động hóa quy trình commit trong VS Code với Copilot:
-1. Sử dụng script PowerShell với phím tắt
-2. Sử dụng extension VS Code
+This project provides two methods to automate the commit process in VS Code with Copilot:
+1. Using a PowerShell script with a keyboard shortcut
+2. Using a VS Code extension
 
-## Cài đặt nhanh (Một bước duy nhất)
+## Quick Setup (One Step Only)
 
-Để cài đặt và thiết lập tất cả mọi thứ chỉ với một bước duy nhất, chạy file `auto-commit-setup.bat`:
+To install and set up everything in a single step, run the `auto-commit-setup.bat` file:
 
 ```
 .\auto-commit-setup.bat
 ```
 
-Script này sẽ tự động:
-1. Kiểm tra và hướng dẫn cài đặt các công cụ cần thiết (VS Code, Node.js, Inno Setup)
-2. Cài đặt vsce và các dependencies
-3. Biên dịch TypeScript
-4. Đóng gói extension thành file VSIX
-5. Tạo file cài đặt EXE (nếu Inno Setup đã được cài đặt)
-6. Cài đặt extension vào VS Code (nếu bạn chọn)
+This script will automatically:
+1. Check and guide you to install necessary tools (VS Code, Node.js, Inno Setup)
+2. Install vsce and dependencies
+3. Compile TypeScript
+4. Package the extension into a VSIX file
+5. Create an EXE installer (if Inno Setup is installed)
+6. Install the extension into VS Code (if you choose to)
 
-> **Lưu ý**: Nên chạy script với quyền Administrator để đảm bảo quá trình cài đặt diễn ra suôn sẻ.
+> **Note**: It's recommended to run the script with Administrator privileges to ensure a smooth installation process.
 
-## Phương pháp 1: Script PowerShell
+## Method 1: PowerShell Script
 
-### Tính năng
+### Features
 
-Khi nhấn phím tắt `Ctrl+Alt+C`, script sẽ tự động:
-1. Mở panel Source Control
-2. Gọi lệnh Generate Commit Message with Copilot
-3. Thực hiện commit
+When you press the shortcut `Ctrl+Alt+C`, the script will automatically:
+1. Open the Source Control panel
+2. Call the Generate Commit Message with Copilot command
+3. Perform the commit
 
-### Cài đặt
+### Installation
 
-1. Đảm bảo bạn đã cài đặt VS Code và GitHub Copilot
-2. Clone repository này
-3. Mở dự án trong VS Code
-4. Phím tắt `Ctrl+Alt+C` đã được cấu hình trong file `.vscode/keybindings.json`
+1. Make sure you have VS Code and GitHub Copilot installed
+2. Clone this repository
+3. Open the project in VS Code
+4. The shortcut `Ctrl+Alt+C` is already configured in the `.vscode/keybindings.json` file
 
-### Cách sử dụng
+### How to Use
 
-1. Thực hiện các thay đổi trong dự án của bạn
-2. Stage các thay đổi bạn muốn commit
-3. Nhấn `Ctrl+Alt+C` để tự động tạo commit message và thực hiện commit
+1. Make changes to your project
+2. Stage the changes you want to commit
+3. Press `Ctrl+Alt+C` to automatically generate a commit message and perform the commit
 
-### Yêu cầu
+### Requirements
 
 - Visual Studio Code
 - GitHub Copilot
 - PowerShell
 
-## Phương pháp 2: Extension VS Code
+## Method 2: VS Code Extension
 
-### Tính năng
+### Features
 
-Extension này cung cấp một lệnh và phím tắt để tự động:
-1. Mở panel Source Control
-2. Gọi lệnh Generate Commit Message with Copilot
-3. Thực hiện commit
+This extension provides a command and shortcut to automatically:
+1. Open the Source Control panel
+2. Call the Generate Commit Message with Copilot command
+3. Perform the commit
 
-### Cách sử dụng
+### How to Use
 
-1. Thực hiện các thay đổi trong dự án của bạn
-2. Stage các thay đổi bạn muốn commit
-3. Sử dụng một trong các cách sau:
-   - Nhấn phím tắt `Ctrl+Space` (Windows/Linux) hoặc `Cmd+Space` (Mac)
-   - Nhấn chuột phải trong editor và chọn "Auto Commit với Copilot" từ menu ngữ cảnh
-   - Mở Command Palette (Ctrl+Shift+P) và gõ "Auto Commit với Copilot"
+1. Make changes to your project
+2. Stage the changes you want to commit
+3. Use one of the following methods:
+   - Press the shortcut `Ctrl+Space` (Windows/Linux) or `Cmd+Space` (Mac)
+   - Right-click in the editor and select "Auto Commit with Copilot" from the context menu
+   - Open the Command Palette (Ctrl+Shift+P) and type "Auto Commit with Copilot"
 
-### Yêu cầu
+### Requirements
 
-- Visual Studio Code 1.60.0 trở lên
-- GitHub Copilot extension đã được cài đặt và cấu hình
-- Node.js và npm
+- Visual Studio Code 1.60.0 or later
+- GitHub Copilot extension installed and configured
+- Node.js and npm
 
-## Gỡ cài đặt extension
+## Uninstalling the Extension
 
-1. Mở VS Code
-2. Nhấn Ctrl+Shift+X để mở Extensions view
-3. Tìm "Auto Commit với Copilot" trong danh sách các extension đã cài đặt
-4. Nhấn nút "Uninstall"
+1. Open VS Code
+2. Press Ctrl+Shift+X to open the Extensions view
+3. Find "Auto Commit with Copilot" in the list of installed extensions
+4. Click the "Uninstall" button
 
-## Tùy chỉnh
+## Customization
 
-- Phương pháp 1: Bạn có thể chỉnh sửa file `scripts/auto-commit.ps1` để thay đổi hành vi của script hoặc thay đổi phím tắt trong file `.vscode/keybindings.json`.
-- Phương pháp 2: Bạn có thể chỉnh sửa mã nguồn của extension trong thư mục `extension/src`.
+- Method 1: You can edit the `scripts/auto-commit.ps1` file to change the behavior of the script or change the shortcut in the `.vscode/keybindings.json` file.
+- Method 2: You can edit the extension source code in the `extension/src` directory.
 
-## Hướng dẫn chi tiết
+## Detailed Instructions
 
-Xem file `HƯỚNG_DẪN_SỬ_DỤNG.md` để biết thêm chi tiết về cách sử dụng các script và công cụ. 
+See the `USER_GUIDE.md` file for more details on how to use the scripts and tools. 
