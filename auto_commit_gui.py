@@ -954,16 +954,17 @@ class AutoCommitGUI:
         old_lang = self.settings.get("language", "vi")
         old_theme = self.settings.get("theme", "light")
         
-        self.settings = settings
+        # Cập nhật settings
+        self.settings.update(settings)
         
         # Cập nhật biến toàn cục trong auto_commit.py
         try:
             import auto_commit
-            auto_commit.API_KEY = settings["api_key"]
-            auto_commit.MAX_DIFF_SIZE = settings["max_diff_size"]
-            auto_commit.MAX_RETRIES = settings["max_retries"]
-            auto_commit.RETRY_DELAY = settings["retry_delay"]
-            auto_commit.SIMULATION_MODE = settings["simulation_mode"]
+            auto_commit.API_KEY = self.settings["api_key"]
+            auto_commit.MAX_DIFF_SIZE = self.settings["max_diff_size"]
+            auto_commit.MAX_RETRIES = self.settings["max_retries"]
+            auto_commit.RETRY_DELAY = self.settings["retry_delay"]
+            auto_commit.SIMULATION_MODE = self.settings["simulation_mode"]
             
             # Cập nhật file auto_commit.py
             try:
@@ -971,19 +972,19 @@ class AutoCommitGUI:
                     content = file.read()
                 
                 # Cập nhật API_KEY
-                content = self.update_variable(content, "API_KEY", f'"{settings["api_key"]}"')
+                content = self.update_variable(content, "API_KEY", f'"{self.settings["api_key"]}"')
                 
                 # Cập nhật MAX_DIFF_SIZE
-                content = self.update_variable(content, "MAX_DIFF_SIZE", str(settings["max_diff_size"]))
+                content = self.update_variable(content, "MAX_DIFF_SIZE", str(self.settings["max_diff_size"]))
                 
                 # Cập nhật MAX_RETRIES
-                content = self.update_variable(content, "MAX_RETRIES", str(settings["max_retries"]))
+                content = self.update_variable(content, "MAX_RETRIES", str(self.settings["max_retries"]))
                 
                 # Cập nhật RETRY_DELAY
-                content = self.update_variable(content, "RETRY_DELAY", str(settings["retry_delay"]))
+                content = self.update_variable(content, "RETRY_DELAY", str(self.settings["retry_delay"]))
                 
                 # Cập nhật SIMULATION_MODE
-                content = self.update_variable(content, "SIMULATION_MODE", str(settings["simulation_mode"]))
+                content = self.update_variable(content, "SIMULATION_MODE", str(self.settings["simulation_mode"]))
                 
                 with open("auto_commit.py", 'w', encoding='utf-8') as file:
                     file.write(content)
@@ -992,29 +993,60 @@ class AutoCommitGUI:
             except Exception as e:
                 auto_commit_logger.error(f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
                 messagebox.showerror(self.texts["error"], f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
-                
-                # Vẫn cập nhật biến toàn cục trong bộ nhớ
                 messagebox.showinfo(self.texts["notice"], self.texts["settings_saved_memory"])
         except Exception as e:
             auto_commit_logger.error(f"Lỗi khi cập nhật cài đặt: {str(e)}")
             messagebox.showerror(self.texts["error"], f"Lỗi khi cập nhật cài đặt: {str(e)}")
         
         # Cập nhật ngôn ngữ và theme nếu có thay đổi
-        if settings["language"] != old_lang:
-            self.current_lang = settings["language"]
+        if self.settings["language"] != old_lang:
+            self.current_lang = self.settings["language"]
+            self.texts = TRANSLATIONS[self.current_lang]
             self.update_language()
         
-        if settings["theme"] != old_theme:
-            self.current_theme = settings["theme"]
+        if self.settings["theme"] != old_theme:
+            self.current_theme = self.settings["theme"]
             self.theme = THEMES[self.current_theme]
             self.apply_theme()
             
             # Cập nhật màu nền cho các text widget
-            self.system_info_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
-            self.git_info_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
-            self.diff_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
-            self.commit_message_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
-            self.log_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            for widget in [self.system_info_text, self.git_info_text, self.diff_text, 
+                         self.commit_message_text, self.log_text]:
+                widget.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            
+            # Cập nhật màu nền cho cửa sổ chính
+            self.root.configure(bg=self.theme["bg"])
+            
+            # Cập nhật style cho các widget ttk
+            self.style.configure(".", 
+                background=self.theme["bg"],
+                foreground=self.theme["fg"])
+            
+            self.style.configure("TFrame",
+                background=self.theme["bg"])
+            
+            self.style.configure("TLabel",
+                background=self.theme["bg"],
+                foreground=self.theme["fg"])
+            
+            self.style.configure("TButton",
+                background=self.theme["button_bg"],
+                foreground=self.theme["button_fg"])
+            
+            self.style.configure("TCheckbutton",
+                background=self.theme["bg"],
+                foreground=self.theme["fg"])
+            
+            self.style.configure("TNotebook",
+                background=self.theme["bg"],
+                foreground=self.theme["fg"])
+            
+            self.style.configure("TNotebook.Tab",
+                background=self.theme["button_bg"],
+                foreground=self.theme["button_fg"])
+            
+            # Force cập nhật giao diện
+            self.root.update_idletasks()
     
     def update_variable(self, content, var_name, new_value):
         """Cập nhật giá trị biến trong nội dung file"""
