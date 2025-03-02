@@ -14,7 +14,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("auto_commit.log", mode="a")  # Thêm file log
+        logging.FileHandler("auto_commit.log", mode="a", encoding="utf-8")  # Thêm encoding utf-8
     ]
 )
 logger = logging.getLogger('auto_commit')
@@ -55,6 +55,7 @@ def check_git_installed():
 
 def check_api_key():
     """Kiểm tra xem API key đã được cấu hình chưa"""
+    global API_KEY
     if API_KEY == "YOUR_GEMINI_API_KEY":
         logger.warning("API key chưa được cấu hình.")
         
@@ -72,7 +73,6 @@ def check_api_key():
                     file.write(content)
                 
                 # Cập nhật biến toàn cục
-                global API_KEY
                 API_KEY = api_key
                 
                 logger.info("API key đã được cập nhật.")
@@ -313,7 +313,7 @@ def main():
     
     # Ghi thông tin hệ thống vào log
     system_info = get_system_info()
-    logger.info(f"Thông tin hệ thống: {json.dumps(system_info, ensure_ascii=False)}")
+    logger.info(f"Thông tin hệ thống: {json.dumps(system_info, ensure_ascii=True)}")
     
     # Kiểm tra Git đã được cài đặt chưa
     if not check_git_installed():

@@ -11,12 +11,15 @@ Công cụ tự động tạo commit message theo chuẩn Conventional Commits s
 - Tự động test và tối ưu mã nguồn
 - Xử lý lỗi mạnh mẽ và logging chi tiết
 - Kiểm tra tự động các yêu cầu hệ thống
+- Chế độ mô phỏng khi Git không được cài đặt
+- Tự động cài đặt các thư viện cần thiết
+- Tự động thử lại khi gặp lỗi kết nối API
 
 ## Yêu cầu
 
 - Python 3.6 trở lên
-- Git đã được cài đặt và cấu hình
-- API key của Google Gemini
+- Git đã được cài đặt và cấu hình (tùy chọn, có thể chạy ở chế độ mô phỏng)
+- API key của Google Gemini (tùy chọn, có thể sử dụng commit message mặc định)
 
 ## Cài đặt
 
@@ -30,6 +33,7 @@ Công cụ tự động tạo commit message theo chuẩn Conventional Commits s
    ```
    pip install -r requirements.txt
    ```
+   Hoặc chạy trực tiếp `auto_commit.bat` hoặc `test_and_optimize.bat`, các thư viện sẽ được cài đặt tự động.
 
 3. Cấu hình API key:
    - Đăng ký và lấy API key từ [Google AI Studio](https://makersuite.google.com/app/apikey)
@@ -45,17 +49,35 @@ Công cụ tự động tạo commit message theo chuẩn Conventional Commits s
    auto_commit.bat
    ```
 
-3. Nếu có các file chưa được staged, công cụ sẽ hỏi bạn có muốn stage tất cả không
+3. Nếu Git không được cài đặt, bạn sẽ được hỏi có muốn tiếp tục ở chế độ mô phỏng không
+   - Chọn Y để tiếp tục ở chế độ mô phỏng
+   - Chọn N để thoát và cài đặt Git
+
+4. Nếu có các file chưa được staged, công cụ sẽ hỏi bạn có muốn stage tất cả không
    - Chọn Y để stage tất cả các thay đổi
    - Chọn N để thoát và stage thủ công
 
-4. Công cụ sẽ hỏi bạn có muốn chạy test trước khi commit không
+5. Công cụ sẽ hỏi bạn có muốn chạy test trước khi commit không
    - Chọn Y để chạy test
    - Chọn N để bỏ qua test
 
-5. Công cụ sẽ tự động tạo commit message dựa trên các thay đổi và thực hiện commit
+6. Công cụ sẽ tự động tạo commit message dựa trên các thay đổi và thực hiện commit
 
-6. Sau khi commit thành công, công cụ sẽ hỏi bạn có muốn push lên remote repository không
+7. Sau khi commit thành công, công cụ sẽ hỏi bạn có muốn push lên remote repository không
+
+## Chế độ mô phỏng
+
+Khi Git không được cài đặt hoặc thư mục hiện tại không phải là git repository, công cụ có thể chạy ở chế độ mô phỏng:
+
+- Mô phỏng các thay đổi dựa trên các file trong thư mục hiện tại
+- Tạo commit message bằng API Gemini (nếu có API key) hoặc sử dụng message mặc định
+- Lưu commit message vào file `commit_history.txt` thay vì thực hiện commit thật
+- Vẫn chạy được các test và tối ưu
+
+Chế độ mô phỏng giúp bạn:
+- Kiểm tra chức năng của công cụ mà không cần cài đặt Git
+- Thử nghiệm tạo commit message trước khi áp dụng vào repository thật
+- Học cách sử dụng công cụ trong môi trường an toàn
 
 ## Test và Tối ưu
 
@@ -101,12 +123,15 @@ Trong đó:
 - `test_auto_commit.py`: Script Python để test các chức năng
 - `test_and_optimize.bat`: File batch để chạy test và tối ưu
 - `requirements.txt`: Danh sách các thư viện Python cần thiết
+- `auto_commit.log`: File log ghi lại các hoạt động của ứng dụng
+- `commit_history.txt`: Lịch sử commit trong chế độ mô phỏng
 
 ## Tùy chỉnh
 
 Bạn có thể tùy chỉnh các tham số trong file `auto_commit.py`:
 
 - `MAX_DIFF_SIZE`: Kích thước tối đa của diff content để gửi đến API (mặc định: 3000 ký tự)
+- `SIMULATION_MODE`: Bật/tắt chế độ mô phỏng thủ công (mặc định: False)
 - Prompt cho Gemini: Bạn có thể thay đổi prompt để tạo commit message theo ý muốn
 
 ## Xử lý lỗi
@@ -115,8 +140,10 @@ Công cụ này bao gồm xử lý lỗi mạnh mẽ:
 
 - Kiểm tra tự động các yêu cầu hệ thống (Python, Git)
 - Kiểm tra API key đã được cấu hình chưa
-- Xử lý các lỗi khi gọi API Gemini
-- Logging chi tiết để dễ dàng gỡ lỗi
+- Xử lý các lỗi khi gọi API Gemini với cơ chế thử lại
+- Logging chi tiết vào file `auto_commit.log` để dễ dàng gỡ lỗi
+- Chế độ mô phỏng khi không có Git
+- Tự động cài đặt các thư viện cần thiết
 
 ## Giấy phép
 
