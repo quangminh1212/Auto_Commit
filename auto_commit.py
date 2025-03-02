@@ -201,7 +201,6 @@ class DarkThemeDialog(simpledialog.Dialog):
             
             # Mô phỏng việc gọi Copilot API (thực tế sẽ cần tích hợp với API của Copilot)
             # Trong trường hợp này, chúng ta tạo một commit message mẫu
-            import time
             time.sleep(1)  # Giả lập thời gian xử lý
             
             # Tạo commit message dựa trên các file đã thay đổi
@@ -460,7 +459,8 @@ class AutoCommitApp:
                 all_changed_files
             )
             
-            if dialog.result_message:
+            # Kiểm tra xem người dùng đã nhấn OK hay Cancel
+            if hasattr(dialog, 'result_message') and dialog.result_message:
                 # Thực hiện commit với message đã chỉnh sửa
                 # Đảm bảo commit message là chuỗi ASCII hoặc UTF-8 hợp lệ
                 safe_message = dialog.result_message.encode('utf-8', errors='replace').decode('utf-8')
