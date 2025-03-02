@@ -4,6 +4,15 @@ Dự án này cung cấp hai phương pháp để tự động hóa quy trình c
 1. Sử dụng script PowerShell với phím tắt
 2. Sử dụng extension VS Code
 
+## Cài đặt nhanh
+
+Để cài đặt extension một cách nhanh chóng, chỉ cần chạy file `quick-install.bat`:
+```
+.\quick-install.bat
+```
+
+Script này sẽ tự động đóng gói và cài đặt extension vào VS Code của bạn.
+
 ## Phương pháp 1: Script PowerShell
 
 ### Tính năng
@@ -43,23 +52,28 @@ Extension này cung cấp một lệnh và phím tắt để tự động:
 
 ### Cài đặt
 
+#### Cài đặt nhanh
+Chạy file `quick-install.bat` để cài đặt extension một cách nhanh chóng:
+```
+.\quick-install.bat
+```
+
 #### Sử dụng file Executable (EXE)
-1. Tải file Auto-Commit-Installer.exe từ trang Releases
-2. Chạy file exe và làm theo hướng dẫn để cài đặt extension
+1. Chạy file `build-installer.bat` để tạo file cài đặt:
+   ```
+   .\build-installer.bat
+   ```
+2. Chạy file `Auto-Commit-Installer.exe` và làm theo hướng dẫn để cài đặt extension
 3. Khởi động lại VS Code sau khi cài đặt
 
-#### Sử dụng script tự động
-1. Chạy script `run-extension.ps1` để đóng gói và cài đặt extension:
+#### Sử dụng file VSIX
+1. Chạy file `package-extension.bat` để đóng gói extension:
    ```
-   .\run-extension.ps1
+   .\package-extension.bat
    ```
-2. Làm theo hướng dẫn trên màn hình để cài đặt extension
-
-#### Từ VSIX
-1. Đóng gói extension theo hướng dẫn trong file `extension/HƯỚNG_DẪN.md`
 2. Mở VS Code
 3. Nhấn F1 hoặc Ctrl+Shift+P để mở Command Palette
-4. Gõ "Extensions: Install from VSIX" và chọn file VSIX đã tạo
+4. Gõ "Extensions: Install from VSIX" và chọn file `extension\auto-commit-copilot-0.0.1.vsix`
 
 #### Từ mã nguồn (chế độ debug)
 1. Chạy script `debug-extension.ps1` để chuẩn bị và chạy extension trong chế độ debug:
@@ -84,6 +98,13 @@ Extension này cung cấp một lệnh và phím tắt để tự động:
 - Node.js và npm
 
 ## Phát triển
+
+### Cài đặt công cụ
+
+Chạy file `setup-tools.bat` để cài đặt các công cụ cần thiết:
+```
+.\setup-tools.bat
+```
 
 ### Môi trường ảo
 
@@ -122,4 +143,8 @@ Dự án này sử dụng môi trường ảo để quản lý dependencies:
 ## Tùy chỉnh
 
 - Phương pháp 1: Bạn có thể chỉnh sửa file `scripts/auto-commit.ps1` để thay đổi hành vi của script hoặc thay đổi phím tắt trong file `.vscode/keybindings.json`.
-- Phương pháp 2: Bạn có thể chỉnh sửa mã nguồn của extension trong thư mục `extension/src`. 
+- Phương pháp 2: Bạn có thể chỉnh sửa mã nguồn của extension trong thư mục `extension/src`.
+
+## Hướng dẫn chi tiết
+
+Xem file `HƯỚNG_DẪN_SỬ_DỤNG.md` để biết thêm chi tiết về cách sử dụng các script và công cụ. 
