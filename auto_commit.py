@@ -12,6 +12,7 @@ import threading
 import queue
 import subprocess 
 import io
+import keyboard  # Thêm thư viện keyboard để xử lý phím tắt
 
 # Cấu hình logging với custom handler để gửi log đến giao diện
 log_queue = queue.Queue()
@@ -263,6 +264,9 @@ class AutoCommitApp:
         # Bắt đầu thread để cập nhật log
         self.log_update_thread = threading.Thread(target=self.update_log_widget, daemon=True)
         self.log_update_thread.start()
+        
+        # Thiết lập phím tắt
+        self.setup_hotkeys()
         
         # Tự động bắt đầu theo dõi khi khởi động
         self.start_monitoring()
@@ -535,6 +539,20 @@ class AutoCommitApp:
         if messagebox.askokcancel("Thoát", "Bạn có muốn thoát ứng dụng?"):
             self.stop_monitoring()
             self.root.destroy()
+    
+    def setup_hotkeys(self):
+        """Thiết lập phím tắt cho ứng dụng"""
+        try:
+            # Đăng ký phím tắt Ctrl+Space để tạo commit message và commit
+            keyboard.add_hotkey('ctrl+space', self.quick_commit)
+            logging.info("[INFO] Đã thiết lập phím tắt Ctrl+Space để tạo commit nhanh")
+        except Exception as e:
+            logging.error("[ERROR] Không thể thiết lập phím tắt: {}".format(str(e)))
+    
+    def quick_commit(self):
+        """Thực hiện nhanh việc tạo commit message và commit khi nhấn phím tắt"""
+        logging.info("[INFO] Đã kích hoạt phím tắt tạo commit nhanh")
+        self.generate_commit_message()
 
 if __name__ == "__main__":
     try:
