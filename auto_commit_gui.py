@@ -312,7 +312,8 @@ class SettingsDialog(tk.Toplevel):
                 messagebox.showerror(self.texts["error"], self.texts["positive_integer_error"])
                 return
             
-            self.settings.update({
+            # Lấy giá trị mới
+            new_settings = {
                 "api_key": self.api_key_var.get(),
                 "max_diff_size": max_diff_size,
                 "max_retries": max_retries,
@@ -320,10 +321,17 @@ class SettingsDialog(tk.Toplevel):
                 "simulation_mode": self.simulation_mode_var.get(),
                 "language": self.language_var.get(),
                 "theme": self.theme_var.get()
-            })
+            }
             
-            self.save_callback(self.settings)
+            # Gọi callback để lưu cài đặt
+            self.save_callback(new_settings)
+            
+            # Đóng dialog
             self.destroy()
+            
+            # Cập nhật lại giao diện của cửa sổ chính
+            self.master.update_idletasks()
+            
         except ValueError:
             messagebox.showerror(self.texts["error"], self.texts["integer_error"])
     
@@ -1001,52 +1009,12 @@ class AutoCommitGUI:
         # Cập nhật ngôn ngữ và theme nếu có thay đổi
         if self.settings["language"] != old_lang:
             self.current_lang = self.settings["language"]
-            self.texts = TRANSLATIONS[self.current_lang]
-            self.update_language()
         
         if self.settings["theme"] != old_theme:
             self.current_theme = self.settings["theme"]
-            self.theme = THEMES[self.current_theme]
-            self.apply_theme()
-            
-            # Cập nhật màu nền cho các text widget
-            for widget in [self.system_info_text, self.git_info_text, self.diff_text, 
-                         self.commit_message_text, self.log_text]:
-                widget.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
-            
-            # Cập nhật màu nền cho cửa sổ chính
-            self.root.configure(bg=self.theme["bg"])
-            
-            # Cập nhật style cho các widget ttk
-            self.style.configure(".", 
-                background=self.theme["bg"],
-                foreground=self.theme["fg"])
-            
-            self.style.configure("TFrame",
-                background=self.theme["bg"])
-            
-            self.style.configure("TLabel",
-                background=self.theme["bg"],
-                foreground=self.theme["fg"])
-            
-            self.style.configure("TButton",
-                background=self.theme["button_bg"],
-                foreground=self.theme["button_fg"])
-            
-            self.style.configure("TCheckbutton",
-                background=self.theme["bg"],
-                foreground=self.theme["fg"])
-            
-            self.style.configure("TNotebook",
-                background=self.theme["bg"],
-                foreground=self.theme["fg"])
-            
-            self.style.configure("TNotebook.Tab",
-                background=self.theme["button_bg"],
-                foreground=self.theme["button_fg"])
-            
-            # Force cập nhật giao diện
-            self.root.update_idletasks()
+        
+        # Cập nhật lại toàn bộ giao diện
+        self.refresh_ui()
     
     def update_variable(self, content, var_name, new_value):
         """Cập nhật giá trị biến trong nội dung file"""
@@ -1100,6 +1068,55 @@ class AutoCommitGUI:
         
         widget.bind("<Enter>", enter)
         widget.bind("<Leave>", leave)
+
+    def refresh_ui(self):
+        """Cập nhật lại toàn bộ giao diện"""
+        # Cập nhật ngôn ngữ
+        self.texts = TRANSLATIONS[self.current_lang]
+        self.update_language()
+        
+        # Cập nhật theme
+        self.theme = THEMES[self.current_theme]
+        self.apply_theme()
+        
+        # Cập nhật màu nền cho các text widget
+        for widget in [self.system_info_text, self.git_info_text, self.diff_text, 
+                     self.commit_message_text, self.log_text]:
+            widget.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+        
+        # Cập nhật màu nền cho cửa sổ chính
+        self.root.configure(bg=self.theme["bg"])
+        
+        # Cập nhật style cho các widget ttk
+        self.style.configure(".", 
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TFrame",
+            background=self.theme["bg"])
+        
+        self.style.configure("TLabel",
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TButton",
+            background=self.theme["button_bg"],
+            foreground=self.theme["button_fg"])
+        
+        self.style.configure("TCheckbutton",
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TNotebook",
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TNotebook.Tab",
+            background=self.theme["button_bg"],
+            foreground=self.theme["button_fg"])
+        
+        # Force cập nhật giao diện
+        self.root.update_idletasks()
 
 def main():
     """Hàm chính của ứng dụng"""
