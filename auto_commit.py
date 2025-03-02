@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import scrolledtext, ttk, messagebox, simpledialog
 import threading
 import queue
-import subprocess
+import subprocess 
 import io
 
 # Cấu hình logging với custom handler để gửi log đến giao diện
