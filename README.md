@@ -4,6 +4,20 @@ Dự án này cung cấp hai phương pháp để tự động hóa quy trình c
 1. Sử dụng script PowerShell với phím tắt
 2. Sử dụng extension VS Code
 
+## Cài đặt và cấu hình tự động
+
+Để thực hiện tất cả các bước từ cài đặt công cụ đến tạo file cài đặt và cài đặt extension, chạy file `run-all.bat`:
+
+```
+.\run-all.bat
+```
+
+Script này sẽ:
+1. Cài đặt tất cả các công cụ cần thiết
+2. Đóng gói extension thành file VSIX
+3. Tạo file cài đặt EXE
+4. Hỏi bạn có muốn cài đặt extension không
+
 ## Cài đặt nhanh
 
 Để cài đặt extension một cách nhanh chóng, chỉ cần chạy file `quick-install.bat`:
