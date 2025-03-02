@@ -11,6 +11,7 @@ from tkinter import scrolledtext, ttk, messagebox, simpledialog
 import threading
 import queue
 import subprocess
+import io
 
 # Cấu hình logging với custom handler để gửi log đến giao diện
 log_queue = queue.Queue()
@@ -152,22 +153,25 @@ class CommitMessageDialog(simpledialog.Dialog):
             
             # Thực hiện lệnh git diff để lấy thông tin chi tiết về thay đổi
             try:
-                diff_output = subprocess.check_output(
+                # Sử dụng encoding utf-8 để xử lý đúng các ký tự Unicode
+                process = subprocess.Popen(
                     ["git", "diff", "--staged"], 
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    encoding='utf-8'
                 )
-            except subprocess.CalledProcessError:
+                diff_output, _ = process.communicate()
+            except Exception:
                 diff_output = "Không thể lấy thông tin diff"
             
             # Tạo prompt cho Copilot
             prompt = f"Tạo commit message dựa trên các thay đổi sau:\n\nCác file đã thay đổi:\n{files_info}\n\nDiff:\n{diff_output[:1000]}"
             
             # Hiển thị dialog đang xử lý
-            self.message_text.config(state=tk.DISABLED)
+            self.message_text.config(state=tk.NORMAL)
             self.message_text.delete(1.0, tk.END)
             self.message_text.insert(tk.END, "Đang tạo commit message với Copilot...")
-            self.message_text.config(state=tk.NORMAL)
             
             # Mô phỏng việc gọi Copilot API (thực tế sẽ cần tích hợp với API của Copilot)
             # Trong trường hợp này, chúng ta tạo một commit message mẫu
@@ -365,13 +369,15 @@ class AutoCommitApp:
             
             if dialog.result_message:
                 # Thực hiện commit với message đã chỉnh sửa
-                repo.index.commit(dialog.result_message)
+                # Đảm bảo commit message là chuỗi ASCII hoặc UTF-8 hợp lệ
+                safe_message = dialog.result_message.encode('utf-8', errors='replace').decode('utf-8')
+                repo.index.commit(safe_message)
                 
                 # Push lên remote repository
                 try:
                     origin = repo.remote(name='origin')
                     origin.push()
-                    logging.info(f"[SUCCESS] Đã commit và push thành công (với message tùy chỉnh):\n{dialog.result_message}")
+                    logging.info(f"[SUCCESS] Đã commit và push thành công (với message tùy chỉnh):\n{safe_message}")
                 except Exception as e:
                     logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
                     logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
@@ -403,14 +409,17 @@ class AutoCommitApp:
             changed_files_str = ", ".join(changed_files + untracked_files)
             commit_message = f"Manual commit at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nChanged files: {changed_files_str}"
             
+            # Đảm bảo commit message là chuỗi ASCII hoặc UTF-8 hợp lệ
+            safe_message = commit_message.encode('utf-8', errors='replace').decode('utf-8')
+            
             # Commit các thay đổi
-            repo.index.commit(commit_message)
+            repo.index.commit(safe_message)
             
             # Push lên remote repository
             try:
                 origin = repo.remote(name='origin')
                 origin.push()
-                logging.info(f"[SUCCESS] Đã commit và push thành công (thủ công):\n{commit_message}")
+                logging.info(f"[SUCCESS] Đã commit và push thành công (thủ công):\n{safe_message}")
             except Exception as e:
                 logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
                 logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
@@ -433,6 +442,12 @@ class AutoCommitApp:
 
 if __name__ == "__main__":
     try:
+        # Đặt mã hóa mặc định cho stdout và stderr
+        if sys.stdout.encoding != 'utf-8':
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        if sys.stderr.encoding != 'utf-8':
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+            
         root = tk.Tk()
         app = AutoCommitApp(root)
         root.protocol("WM_DELETE_WINDOW", app.on_closing)
