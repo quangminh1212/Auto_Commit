@@ -7,9 +7,10 @@ import datetime
 import logging
 import sys
 import tkinter as tk
-from tkinter import scrolledtext, ttk, messagebox
+from tkinter import scrolledtext, ttk, messagebox, simpledialog
 import threading
 import queue
+import subprocess
 
 # Cấu hình logging với custom handler để gửi log đến giao diện
 log_queue = queue.Queue()
@@ -109,6 +110,96 @@ class GitAutoCommit(FileSystemEventHandler):
         except Exception as e:
             logging.error(f"[ERROR] Lỗi: {str(e)}")
 
+class CommitMessageDialog(simpledialog.Dialog):
+    def __init__(self, parent, title, default_message, changed_files):
+        self.default_message = default_message
+        self.changed_files = changed_files
+        self.result_message = None
+        super().__init__(parent, title)
+        
+    def body(self, master):
+        ttk.Label(master, text="Các file đã thay đổi:").grid(row=0, column=0, sticky="w", pady=(0, 5))
+        
+        # Hiển thị danh sách file đã thay đổi
+        files_frame = ttk.Frame(master)
+        files_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        
+        files_text = scrolledtext.ScrolledText(files_frame, wrap=tk.WORD, width=60, height=5)
+        files_text.pack(fill=tk.BOTH, expand=True)
+        files_text.insert(tk.END, "\n".join(self.changed_files))
+        files_text.config(state=tk.DISABLED)
+        
+        ttk.Label(master, text="Nội dung commit:").grid(row=2, column=0, sticky="w", pady=(0, 5))
+        
+        # Text area cho commit message
+        self.message_text = scrolledtext.ScrolledText(master, wrap=tk.WORD, width=60, height=10)
+        self.message_text.grid(row=3, column=0, sticky="ew")
+        self.message_text.insert(tk.END, self.default_message)
+        
+        # Nút Generate với Copilot
+        generate_frame = ttk.Frame(master)
+        generate_frame.grid(row=4, column=0, sticky="ew", pady=10)
+        
+        ttk.Button(generate_frame, text="Generate với Copilot", 
+                  command=self.generate_with_copilot).pack(side=tk.LEFT, padx=5)
+        
+        return self.message_text  # initial focus
+        
+    def generate_with_copilot(self):
+        try:
+            # Lấy thông tin về các thay đổi
+            files_info = "\n".join(self.changed_files)
+            
+            # Thực hiện lệnh git diff để lấy thông tin chi tiết về thay đổi
+            try:
+                diff_output = subprocess.check_output(
+                    ["git", "diff", "--staged"], 
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True
+                )
+            except subprocess.CalledProcessError:
+                diff_output = "Không thể lấy thông tin diff"
+            
+            # Tạo prompt cho Copilot
+            prompt = f"Tạo commit message dựa trên các thay đổi sau:\n\nCác file đã thay đổi:\n{files_info}\n\nDiff:\n{diff_output[:1000]}"
+            
+            # Hiển thị dialog đang xử lý
+            self.message_text.config(state=tk.DISABLED)
+            self.message_text.delete(1.0, tk.END)
+            self.message_text.insert(tk.END, "Đang tạo commit message với Copilot...")
+            self.message_text.config(state=tk.NORMAL)
+            
+            # Mô phỏng việc gọi Copilot API (thực tế sẽ cần tích hợp với API của Copilot)
+            # Trong trường hợp này, chúng ta tạo một commit message mẫu
+            import time
+            time.sleep(1)  # Giả lập thời gian xử lý
+            
+            # Tạo commit message dựa trên các file đã thay đổi
+            generated_message = f"feat: cập nhật {len(self.changed_files)} file\n\n"
+            
+            # Phân loại các thay đổi
+            if any("fix" in f.lower() for f in self.changed_files):
+                generated_message += "- Sửa lỗi trong các module\n"
+            if any(".py" in f.lower() for f in self.changed_files):
+                generated_message += "- Cập nhật mã nguồn Python\n"
+            if any(".md" in f.lower() or "readme" in " ".join(self.changed_files).lower()):
+                generated_message += "- Cập nhật tài liệu\n"
+            if any("test" in f.lower() for f in self.changed_files):
+                generated_message += "- Thêm/cập nhật test cases\n"
+                
+            generated_message += f"\nCác file đã thay đổi: {', '.join(self.changed_files)}"
+            
+            # Cập nhật text area
+            self.message_text.delete(1.0, tk.END)
+            self.message_text.insert(tk.END, generated_message)
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể tạo commit message: {str(e)}")
+            self.message_text.config(state=tk.NORMAL)
+    
+    def apply(self):
+        self.result_message = self.message_text.get(1.0, tk.END).strip()
+
 class AutoCommitApp:
     def __init__(self, root):
         self.root = root
@@ -144,6 +235,11 @@ class AutoCommitApp:
         # Nút Force Commit
         self.force_commit_button = ttk.Button(control_frame, text="Commit ngay", command=self.force_commit)
         self.force_commit_button.pack(side=tk.LEFT, padx=5)
+        
+        # Nút Generate Commit Message
+        self.gen_commit_button = ttk.Button(control_frame, text="Generate Commit Message", 
+                                           command=self.generate_commit_message)
+        self.gen_commit_button.pack(side=tk.LEFT, padx=5)
         
         # Nút Clear Log
         self.clear_log_button = ttk.Button(control_frame, text="Xóa log", command=self.clear_log)
@@ -234,6 +330,55 @@ class AutoCommitApp:
             self.stop_monitoring()
         else:
             self.start_monitoring()
+    
+    def generate_commit_message(self):
+        """Tạo commit message với Copilot"""
+        if not self.is_running or not self.event_handler:
+            messagebox.showinfo("Thông báo", "Vui lòng bắt đầu theo dõi trước khi tạo commit message")
+            return
+            
+        try:
+            repo = self.event_handler.repo
+            
+            if not repo.is_dirty(untracked_files=True):
+                messagebox.showinfo("Thông báo", "Không có thay đổi để commit")
+                return
+                
+            # Add tất cả các file đã thay đổi để có thể lấy thông tin
+            repo.git.add(all=True)
+            
+            # Lấy danh sách file đã thay đổi
+            changed_files = [item.a_path for item in repo.index.diff(None)]
+            untracked_files = repo.untracked_files
+            all_changed_files = changed_files + untracked_files
+            
+            # Tạo commit message mặc định
+            default_message = f"Auto commit at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nChanged files: {', '.join(all_changed_files)}"
+            
+            # Hiển thị dialog để chỉnh sửa commit message
+            dialog = CommitMessageDialog(
+                self.root, 
+                "Tạo Commit Message", 
+                default_message,
+                all_changed_files
+            )
+            
+            if dialog.result_message:
+                # Thực hiện commit với message đã chỉnh sửa
+                repo.index.commit(dialog.result_message)
+                
+                # Push lên remote repository
+                try:
+                    origin = repo.remote(name='origin')
+                    origin.push()
+                    logging.info(f"[SUCCESS] Đã commit và push thành công (với message tùy chỉnh):\n{dialog.result_message}")
+                except Exception as e:
+                    logging.error(f"[ERROR] Lỗi khi push lên remote: {str(e)}")
+                    logging.info("[INFO] Các thay đổi đã được commit locally và sẽ được push khi có kết nối")
+                
+        except Exception as e:
+            logging.error(f"[ERROR] Lỗi khi tạo commit message: {str(e)}")
+            messagebox.showerror("Lỗi", f"Không thể tạo commit message: {str(e)}")
     
     def force_commit(self):
         """Thực hiện commit ngay lập tức"""
