@@ -430,17 +430,17 @@ class AutoCommitGUI:
         # Notebook (Tabs)
         self.style.configure("TNotebook",
             background=self.theme["bg"],
-            foreground=self.theme["fg"])
+            foreground="#000000")
         
         self.style.configure("TNotebook.Tab",
             background=self.theme["button_bg"],
-            foreground=self.theme["button_fg"],
+            foreground="#000000",
             padding=[10, 5])
         
         # Selected tab
         self.style.map("TNotebook.Tab",
             background=[("selected", self.theme["highlight_bg"])],
-            foreground=[("selected", self.theme["highlight_fg"])])
+            foreground=[("selected", "#000000")])
         
         # Entry
         self.style.configure("TEntry",
@@ -1135,17 +1135,17 @@ class AutoCommitGUI:
         
         self.style.configure("TNotebook",
             background=self.theme["bg"],
-            foreground=self.theme["fg"])
+            foreground="#000000")
         
         self.style.configure("TNotebook.Tab",
             background=self.theme["button_bg"],
-            foreground=self.theme["button_fg"],
+            foreground="#000000",
             padding=[10, 5])
         
         # Selected tab
         self.style.map("TNotebook.Tab",
             background=[("selected", self.theme["highlight_bg"])],
-            foreground=[("selected", self.theme["highlight_fg"])])
+            foreground=[("selected", "#000000")])
         
         # Entry
         self.style.configure("TEntry",
