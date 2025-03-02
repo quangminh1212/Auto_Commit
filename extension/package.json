@@ -3,6 +3,10 @@
   "displayName": "Auto Commit với Copilot",
   "description": "Tự động mở Source Control, tạo commit message với Copilot và thực hiện commit",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/auto-commit-copilot"
+  },
   "engines": {
     "vscode": "^1.60.0"
   },
