@@ -7,6 +7,7 @@ import logging
 import platform
 import time
 from datetime import datetime
+from typing import Dict, List, Optional, Union, Any
 
 # Cấu hình logging
 logging.basicConfig(
@@ -14,22 +15,23 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("auto_commit.log", mode="a", encoding="utf-8")  # Thêm encoding utf-8
+        logging.FileHandler("auto_commit.log", mode="a", encoding="utf-8")
     ]
 )
 logger = logging.getLogger('auto_commit')
 
 # Cấu hình API Gemini
-API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"  # API key đã được cập nhật
-API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"  # URL API đã được cập nhật
+API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"
+API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
 
-# Kích thước tối đa của diff content để gửi đến API (để tránh vượt quá giới hạn)
-MAX_DIFF_SIZE = 3000
+# Cấu hình chung
+MAX_DIFF_SIZE = 3000  # Kích thước tối đa của diff content để gửi đến API
+SIMULATION_MODE = False  # Chế độ mô phỏng (không cần Git)
+COMMIT_HISTORY_FILE = "commit_history.txt"  # File lưu lịch sử commit trong chế độ mô phỏng
+MAX_RETRIES = 3  # Số lần thử lại tối đa khi gọi API
+RETRY_DELAY = 2  # Thời gian chờ giữa các lần thử lại (giây)
 
-# Biến toàn cục để kiểm soát chế độ mô phỏng
-SIMULATION_MODE = False  # Đã đặt lại thành False để sử dụng thực tế
-
-def check_git_installed():
+def check_git_installed() -> bool:
     """Kiểm tra xem Git đã được cài đặt chưa"""
     try:
         subprocess.run(["git", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -53,7 +55,7 @@ def check_git_installed():
             logger.error("Vui long cai dat Git va thu lai.")
             return False
 
-def check_api_key():
+def check_api_key() -> bool:
     """Kiểm tra xem API key đã được cấu hình chưa"""
     global API_KEY
     if API_KEY == "YOUR_GEMINI_API_KEY":
@@ -81,44 +83,14 @@ def check_api_key():
                 logger.error(f"Loi khi cap nhat API key: {e}")
                 return False
         else:
-            logger.error("API key khong duoc cung cap. Qua trinh commit co the that bai.")
+            logger.warning("API key khong duoc cung cap. Se su dung commit message mac dinh.")
             return False
     return True
 
-def get_git_diff():
+def get_git_diff() -> Optional[Dict[str, Any]]:
     """Lấy thông tin về các thay đổi trong git"""
     if SIMULATION_MODE:
-        # Mô phỏng dữ liệu git diff trong chế độ mô phỏng
-        logger.info("Dang mo phong git diff...")
-        
-        # Tạo danh sách các file trong thư mục hiện tại
-        files = []
-        for root, _, filenames in os.walk('.'):
-            for filename in filenames:
-                if not filename.startswith('.git') and not filename.endswith('.log'):
-                    file_path = os.path.join(root, filename).replace('\\', '/')
-                    if file_path.startswith('./'):
-                        file_path = file_path[2:]
-                    files.append(file_path)
-        
-        if not files:
-            logger.info("Khong tim thay file nao de mo phong staged changes.")
-            return None
-        
-        # Tạo nội dung diff giả
-        diff_content = "Simulated diff content:\n\n"
-        for file in files[:5]:  # Giới hạn số lượng file để tránh quá nhiều dữ liệu
-            try:
-                with open(file, 'r', encoding='utf-8') as f:
-                    content = f.read(500)  # Chỉ đọc 500 ký tự đầu tiên
-                diff_content += f"--- a/{file}\n+++ b/{file}\n@@ -1,10 +1,10 @@\n{content}\n\n"
-            except Exception:
-                diff_content += f"Binary file {file} changed\n\n"
-        
-        return {
-            "staged_files": files[:5],
-            "diff_content": diff_content
-        }
+        return _get_simulated_diff()
     
     try:
         # Kiểm tra xem có phải là git repository không
@@ -154,7 +126,40 @@ def get_git_diff():
         logger.error(f"Loi khi lay thong tin git: {e}")
         return None
 
-def generate_commit_message(diff_info):
+def _get_simulated_diff() -> Dict[str, Any]:
+    """Tạo dữ liệu diff giả lập cho chế độ mô phỏng"""
+    logger.info("Dang mo phong git diff...")
+    
+    # Tạo danh sách các file trong thư mục hiện tại
+    files = []
+    for root, _, filenames in os.walk('.'):
+        for filename in filenames:
+            if not filename.startswith('.git') and not filename.endswith('.log'):
+                file_path = os.path.join(root, filename).replace('\\', '/')
+                if file_path.startswith('./'):
+                    file_path = file_path[2:]
+                files.append(file_path)
+    
+    if not files:
+        logger.info("Khong tim thay file nao de mo phong staged changes.")
+        return None
+    
+    # Tạo nội dung diff giả
+    diff_content = "Simulated diff content:\n\n"
+    for file in files[:5]:  # Giới hạn số lượng file để tránh quá nhiều dữ liệu
+        try:
+            with open(file, 'r', encoding='utf-8') as f:
+                content = f.read(500)  # Chỉ đọc 500 ký tự đầu tiên
+            diff_content += f"--- a/{file}\n+++ b/{file}\n@@ -1,10 +1,10 @@\n{content}\n\n"
+        except Exception:
+            diff_content += f"Binary file {file} changed\n\n"
+    
+    return {
+        "staged_files": files[:5],
+        "diff_content": diff_content
+    }
+
+def generate_commit_message(diff_info: Optional[Dict[str, Any]]) -> Optional[str]:
     """Tạo commit message bằng API Gemini"""
     if not diff_info:
         return None
@@ -191,7 +196,10 @@ def generate_commit_message(diff_info):
     Chỉ trả về commit message, không cần giải thích thêm.
     """
     
-    # Gọi API Gemini
+    return _call_gemini_api(prompt)
+
+def _call_gemini_api(prompt: str) -> str:
+    """Gọi API Gemini với xử lý lỗi và thử lại"""
     headers = {
         "Content-Type": "application/json"
     }
@@ -212,21 +220,15 @@ def generate_commit_message(diff_info):
     
     try:
         logger.info("Dang goi API Gemini de tao commit message...")
-        
-        # Thêm thông báo đang xử lý
         print("Dang tao commit message bang AI, vui long doi...")
         
-        # Thử gọi API với số lần thử lại
-        max_retries = 3
-        retry_delay = 2  # Giây
-        
-        for attempt in range(max_retries):
+        for attempt in range(MAX_RETRIES):
             try:
                 response = requests.post(
                     f"{API_URL}?key={API_KEY}",
                     headers=headers,
                     json=data,
-                    timeout=30  # Thêm timeout để tránh treo
+                    timeout=30
                 )
                 
                 if response.status_code == 200:
@@ -235,51 +237,42 @@ def generate_commit_message(diff_info):
                     logger.info("Da tao commit message thanh cong.")
                     return commit_message
                 elif response.status_code == 429:  # Rate limit
-                    if attempt < max_retries - 1:
-                        wait_time = retry_delay * (attempt + 1)
+                    if attempt < MAX_RETRIES - 1:
+                        wait_time = RETRY_DELAY * (attempt + 1)
                         logger.warning(f"API rate limit, thu lai sau {wait_time} giay...")
                         time.sleep(wait_time)
                     else:
                         logger.error(f"Da vuot qua so lan thu lai. Loi: {response.status_code}")
                         logger.error(response.text)
-                        return f"chore: auto commit at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        return _generate_default_commit_message()
                 else:
                     logger.error(f"Loi khi goi API Gemini: {response.status_code}")
                     logger.error(response.text)
-                    return f"chore: auto commit at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    return _generate_default_commit_message()
             except requests.RequestException as e:
-                if attempt < max_retries - 1:
-                    wait_time = retry_delay * (attempt + 1)
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = RETRY_DELAY * (attempt + 1)
                     logger.warning(f"Loi ket noi, thu lai sau {wait_time} giay: {e}")
                     time.sleep(wait_time)
                 else:
                     logger.error(f"Da vuot qua so lan thu lai. Loi: {e}")
-                    return f"chore: auto commit at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    return _generate_default_commit_message()
     except (KeyError, IndexError) as e:
         logger.error(f"Loi khi xu ly ket qua tu API Gemini: {e}")
-        return f"chore: auto commit at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        return _generate_default_commit_message()
 
-def create_commit(commit_message):
+def _generate_default_commit_message() -> str:
+    """Tạo commit message mặc định khi không thể gọi API"""
+    return f"chore: auto commit at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+def create_commit(commit_message: str) -> bool:
     """Tạo commit với message đã tạo"""
     if not commit_message:
         return False
     
     if SIMULATION_MODE:
-        # Mô phỏng tạo commit trong chế độ mô phỏng
-        logger.info("Dang mo phong tao commit...")
-        print(f"\nMo phong commit voi message:\n{commit_message}")
-        
-        # Tạo file giả lập lịch sử commit
-        commit_history_file = "commit_history.txt"
-        try:
-            with open(commit_history_file, 'a', encoding='utf-8') as f:
-                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {commit_message}\n")
-            logger.info(f"Da luu commit message vao {commit_history_file}")
-        except Exception as e:
-            logger.error(f"Loi khi luu commit history: {e}")
-        
-        return True
-        
+        return _create_simulated_commit(commit_message)
+    
     try:
         logger.info("Dang tao commit...")
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
@@ -289,7 +282,22 @@ def create_commit(commit_message):
         logger.error(f"Loi khi tao commit: {e}")
         return False
 
-def get_system_info():
+def _create_simulated_commit(commit_message: str) -> bool:
+    """Mô phỏng tạo commit trong chế độ mô phỏng"""
+    logger.info("Dang mo phong tao commit...")
+    print(f"\nMo phong commit voi message:\n{commit_message}")
+    
+    # Tạo file giả lập lịch sử commit
+    try:
+        with open(COMMIT_HISTORY_FILE, 'a', encoding='utf-8') as f:
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {commit_message}\n")
+        logger.info(f"Da luu commit message vao {COMMIT_HISTORY_FILE}")
+        return True
+    except Exception as e:
+        logger.error(f"Loi khi luu commit history: {e}")
+        return False
+
+def get_system_info() -> Dict[str, str]:
     """Lấy thông tin hệ thống để gỡ lỗi"""
     info = {
         "os": platform.system(),
@@ -307,7 +315,19 @@ def get_system_info():
     
     return info
 
-def main():
+def push_to_remote() -> bool:
+    """Push lên remote repository"""
+    try:
+        logger.info("Dang push len remote repository...")
+        subprocess.run(["git", "push"], check=True)
+        logger.info("Da push len remote repository thanh cong.")
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Loi khi push len remote repository: {e}")
+        print("Ban co the push thu cong sau bang lenh: git push")
+        return False
+
+def main() -> None:
     """Hàm chính của ứng dụng"""
     logger.info("Bat dau qua trinh auto commit...")
     
@@ -338,13 +358,7 @@ def main():
         # Hỏi người dùng có muốn push không
         push_choice = input("\nBan co muon push len remote repository khong? (Y/N): ")
         if push_choice.lower() == 'y':
-            try:
-                logger.info("Dang push len remote repository...")
-                subprocess.run(["git", "push"], check=True)
-                logger.info("Da push len remote repository thanh cong.")
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Loi khi push len remote repository: {e}")
-                print("Ban co the push thu cong sau bang lenh: git push")
+            push_to_remote()
 
 if __name__ == "__main__":
     try:
