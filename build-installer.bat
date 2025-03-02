@@ -15,9 +15,9 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-REM Đóng gói extension
+REM Đóng gói extension với tham số bổ sung để bỏ qua cảnh báo
 echo Đang đóng gói extension...
-call npx @vscode/vsce package
+call npx @vscode/vsce package --no-dependencies --no-git-tag-version --allow-missing-repository --skip-license
 if %ERRORLEVEL% NEQ 0 (
     echo Không thể đóng gói extension. Vui lòng kiểm tra lại cài đặt.
     cd ..
