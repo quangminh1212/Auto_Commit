@@ -10,3 +10,18 @@
 2025-03-02 09:17:56,762 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\VF\\Auto_Commit", "git_version": "git version 2.46.2.windows.1"}
 2025-03-02 09:17:56,793 - INFO - Dang mo phong git diff...
 2025-03-02 09:17:56,826 - WARNING - API key chua duoc cau hinh.
+2025-03-02 09:32:01,882 - INFO - Bat dau qua trinh auto commit...
+2025-03-02 09:32:01,982 - INFO - Thong tin he thong: {"os": "Windows", "os_version": "10.0.26100", "python_version": "3.12.5", "cwd": "C:\\VF\\Auto_Commit", "git_version": "git version 2.46.2.windows.1"}
+2025-03-02 09:32:02,012 - INFO - Dang mo phong git diff...
+2025-03-02 09:32:02,044 - INFO - Dang goi API Gemini de tao commit message...
+2025-03-02 09:32:02,834 - ERROR - Loi khi goi API Gemini: 404
+2025-03-02 09:32:02,834 - ERROR - {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+2025-03-02 09:32:02,835 - INFO - Dang mo phong tao commit...
+2025-03-02 09:32:02,835 - INFO - Da luu commit message vao commit_history.txt

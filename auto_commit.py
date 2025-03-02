@@ -20,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger('auto_commit')
 
 # Cấu hình API Gemini
-API_KEY = "YOUR_GEMINI_API_KEY"  # Thay thế bằng API key của bạn
+API_KEY = "AIzaSyBkOqbY_bvU2TYOCiZSLQX5z56w9hWxlww"  # API key đã được cập nhật
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 # Kích thước tối đa của diff content để gửi đến API (để tránh vượt quá giới hạn)
