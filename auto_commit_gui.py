@@ -340,9 +340,32 @@ class AutoCommitGUI:
     """Giao diện chính cho ứng dụng Auto Commit"""
     def __init__(self, root):
         self.root = root
-        self.root.title("Auto Commit")
+        
+        # Cài đặt mặc định
+        self.settings = {
+            "api_key": API_KEY if API_KEY != "YOUR_GEMINI_API_KEY" else "",
+            "max_diff_size": 3000,
+            "max_retries": 3,
+            "retry_delay": 2,
+            "simulation_mode": SIMULATION_MODE,
+            "language": "vi",
+            "theme": "light"
+        }
+        
+        # Lấy ngôn ngữ và theme
+        self.current_lang = self.settings["language"]
+        self.current_theme = self.settings["theme"]
+        self.texts = TRANSLATIONS[self.current_lang]
+        self.theme = THEMES[self.current_theme]
+        
+        # Thiết lập cửa sổ chính
+        self.root.title(self.texts["app_title"])
         self.root.geometry("800x600")
         self.root.minsize(800, 600)
+        
+        # Thiết lập style
+        self.style = ttk.Style()
+        self.apply_theme()
         
         # Thiết lập icon
         try:
@@ -354,16 +377,7 @@ class AutoCommitGUI:
         self.repo_path = tk.StringVar(value=os.getcwd())
         self.commit_message = tk.StringVar()
         self.auto_push = tk.BooleanVar(value=False)
-        self.auto_generate = tk.BooleanVar(value=True)  # Tự động tạo commit message khi chuyển tab
-        
-        # Cài đặt mặc định
-        self.settings = {
-            "api_key": API_KEY if API_KEY != "YOUR_GEMINI_API_KEY" else "",
-            "max_diff_size": 3000,
-            "max_retries": 3,
-            "retry_delay": 2,
-            "simulation_mode": SIMULATION_MODE
-        }
+        self.auto_generate = tk.BooleanVar(value=True)
         
         # Tạo giao diện
         self.create_widgets()
@@ -371,13 +385,87 @@ class AutoCommitGUI:
         
         # Hiển thị dialog cài đặt khi khởi động nếu API key chưa được cấu hình
         if self.settings["api_key"] == "" or self.settings["api_key"] == "YOUR_GEMINI_API_KEY":
-            self.root.after(500, self.open_settings)  # Sử dụng after để đảm bảo giao diện đã được tạo
+            self.root.after(500, self.open_settings)
         
         # Kiểm tra Git
         self.check_git()
         
         # Hiển thị thông báo chào mừng
-        self.status_var.set("Chào mừng đến với Auto Commit! Sẵn sàng để tạo commit.")
+        self.status_var.set(self.texts["welcome"])
+    
+    def apply_theme(self):
+        """Áp dụng theme cho giao diện"""
+        self.style.configure(".", 
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TFrame",
+            background=self.theme["bg"])
+        
+        self.style.configure("TLabel",
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TButton",
+            background=self.theme["button_bg"],
+            foreground=self.theme["button_fg"])
+        
+        self.style.configure("TCheckbutton",
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TNotebook",
+            background=self.theme["bg"],
+            foreground=self.theme["fg"])
+        
+        self.style.configure("TNotebook.Tab",
+            background=self.theme["button_bg"],
+            foreground=self.theme["button_fg"])
+        
+        self.root.configure(bg=self.theme["bg"])
+    
+    def update_language(self):
+        """Cập nhật ngôn ngữ cho giao diện"""
+        self.texts = TRANSLATIONS[self.current_lang]
+        
+        # Cập nhật tiêu đề cửa sổ
+        self.root.title(self.texts["app_title"])
+        
+        # Cập nhật các label
+        self.repo_path_label.configure(text=self.texts["repository_path"])
+        self.browse_button.configure(text=self.texts["browse"])
+        self.settings_button.configure(text=self.texts["settings"])
+        
+        # Cập nhật các tab
+        self.notebook.tab(0, text=self.texts["info_tab"])
+        self.notebook.tab(1, text=self.texts["diff_tab"])
+        self.notebook.tab(2, text=self.texts["commit_tab"])
+        self.notebook.tab(3, text=self.texts["log_tab"])
+        
+        # Cập nhật các label trong tab Info
+        self.system_info_label.configure(text=self.texts["system_info"])
+        self.git_info_label.configure(text=self.texts["git_info"])
+        
+        # Cập nhật các button trong tab Diff
+        self.refresh_button.configure(text=self.texts["refresh"])
+        
+        # Cập nhật các widget trong tab Commit
+        self.commit_message_label.configure(text=self.texts["commit_message"])
+        self.generate_button.configure(text=self.texts["generate_message"])
+        self.auto_commit_button.configure(text=self.texts["auto_commit"])
+        self.auto_push_check.configure(text=self.texts["auto_push"])
+        self.auto_generate_check.configure(text=self.texts["auto_generate"])
+        self.commit_button.configure(text=self.texts["commit"])
+        
+        # Cập nhật nút thoát
+        self.exit_button.configure(text=self.texts["exit"])
+        
+        # Cập nhật tooltip
+        self.create_tooltip(self.generate_button, self.texts["tooltip_generate"])
+        self.create_tooltip(self.auto_commit_button, self.texts["tooltip_auto_commit"])
+        self.create_tooltip(self.auto_push_check, self.texts["tooltip_auto_push"])
+        self.create_tooltip(self.auto_generate_check, self.texts["tooltip_auto_generate"])
+        self.create_tooltip(self.commit_button, self.texts["tooltip_commit"])
     
     def create_widgets(self):
         """Tạo các widget cho giao diện chính"""
@@ -390,10 +478,16 @@ class AutoCommitGUI:
         top_frame.pack(fill=tk.X, pady=5)
         
         # Đường dẫn repository
-        ttk.Label(top_frame, text="Đường dẫn repository:").pack(side=tk.LEFT, padx=5)
+        self.repo_path_label = ttk.Label(top_frame, text=self.texts["repository_path"])
+        self.repo_path_label.pack(side=tk.LEFT, padx=5)
+        
         ttk.Entry(top_frame, textvariable=self.repo_path, width=50).pack(side=tk.LEFT, padx=5)
-        ttk.Button(top_frame, text="Chọn", command=self.browse_repo).pack(side=tk.LEFT, padx=5)
-        ttk.Button(top_frame, text="Cài đặt", command=self.open_settings).pack(side=tk.RIGHT, padx=5)
+        
+        self.browse_button = ttk.Button(top_frame, text=self.texts["browse"], command=self.browse_repo)
+        self.browse_button.pack(side=tk.LEFT, padx=5)
+        
+        self.settings_button = ttk.Button(top_frame, text=self.texts["settings"], command=self.open_settings)
+        self.settings_button.pack(side=tk.RIGHT, padx=5)
         
         # Frame giữa
         middle_frame = ttk.Frame(main_frame)
@@ -406,42 +500,52 @@ class AutoCommitGUI:
         
         # Tab 1: Thông tin
         info_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(info_frame, text="Thông tin")
+        self.notebook.add(info_frame, text=self.texts["info_tab"])
         
         # Thông tin hệ thống
-        ttk.Label(info_frame, text="Thông tin hệ thống:").pack(anchor=tk.W)
-        self.system_info_text = scrolledtext.ScrolledText(info_frame, height=5, width=80, wrap=tk.WORD)
+        self.system_info_label = ttk.Label(info_frame, text=self.texts["system_info"])
+        self.system_info_label.pack(anchor=tk.W)
+        
+        self.system_info_text = scrolledtext.ScrolledText(info_frame, height=5, width=80, wrap=tk.WORD,
+            bg=self.theme["text_bg"], fg=self.theme["text_fg"])
         self.system_info_text.pack(fill=tk.X, pady=5)
         self.system_info_text.insert(tk.END, json.dumps(get_system_info(), indent=2, ensure_ascii=False))
         self.system_info_text.configure(state="disabled")
         
         # Thông tin Git
-        ttk.Label(info_frame, text="Thông tin Git:").pack(anchor=tk.W, pady=(10, 0))
-        self.git_info_text = scrolledtext.ScrolledText(info_frame, height=5, width=80, wrap=tk.WORD)
+        self.git_info_label = ttk.Label(info_frame, text=self.texts["git_info"])
+        self.git_info_label.pack(anchor=tk.W, pady=(10, 0))
+        
+        self.git_info_text = scrolledtext.ScrolledText(info_frame, height=5, width=80, wrap=tk.WORD,
+            bg=self.theme["text_bg"], fg=self.theme["text_fg"])
         self.git_info_text.pack(fill=tk.X, pady=5)
         self.git_info_text.configure(state="disabled")
         
         # Tab 2: Diff
         diff_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(diff_frame, text="Diff")
+        self.notebook.add(diff_frame, text=self.texts["diff_tab"])
         
-        ttk.Button(diff_frame, text="Refresh", command=self.refresh_diff).pack(anchor=tk.W, pady=5)
+        self.refresh_button = ttk.Button(diff_frame, text=self.texts["refresh"], command=self.refresh_diff)
+        self.refresh_button.pack(anchor=tk.W, pady=5)
         
-        self.diff_text = scrolledtext.ScrolledText(diff_frame, height=20, width=80, wrap=tk.WORD)
+        self.diff_text = scrolledtext.ScrolledText(diff_frame, height=20, width=80, wrap=tk.WORD,
+            bg=self.theme["text_bg"], fg=self.theme["text_fg"])
         self.diff_text.pack(fill=tk.BOTH, expand=True, pady=5)
         self.diff_text.configure(state="disabled")
         
         # Tab 3: Commit
         commit_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(commit_frame, text="Commit")
+        self.notebook.add(commit_frame, text=self.texts["commit_tab"])
         
-        ttk.Label(commit_frame, text="Commit message:").pack(anchor=tk.W)
+        self.commit_message_label = ttk.Label(commit_frame, text=self.texts["commit_message"])
+        self.commit_message_label.pack(anchor=tk.W)
         
         # Frame cho commit message
         message_frame = ttk.Frame(commit_frame)
         message_frame.pack(fill=tk.X, pady=5)
         
-        self.commit_message_text = scrolledtext.ScrolledText(message_frame, height=10, width=80, wrap=tk.WORD)
+        self.commit_message_text = scrolledtext.ScrolledText(message_frame, height=10, width=80, wrap=tk.WORD,
+            bg=self.theme["text_bg"], fg=self.theme["text_fg"])
         self.commit_message_text.pack(fill=tk.BOTH, expand=True)
         self.commit_message_text.bind("<Control-Return>", self.on_ctrl_enter)
         
@@ -449,24 +553,34 @@ class AutoCommitGUI:
         button_frame = ttk.Frame(commit_frame)
         button_frame.pack(fill=tk.X, pady=10)
         
-        ttk.Button(button_frame, text="Tạo commit message", command=self.generate_message).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Tự động commit", command=self.auto_commit).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(button_frame, text="Auto push", variable=self.auto_push).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(button_frame, text="Auto generate", variable=self.auto_generate).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Commit", command=self.do_commit).pack(side=tk.RIGHT, padx=5)
+        self.generate_button = ttk.Button(button_frame, text=self.texts["generate_message"], command=self.generate_message)
+        self.generate_button.pack(side=tk.LEFT, padx=5)
+        
+        self.auto_commit_button = ttk.Button(button_frame, text=self.texts["auto_commit"], command=self.auto_commit)
+        self.auto_commit_button.pack(side=tk.LEFT, padx=5)
+        
+        self.auto_push_check = ttk.Checkbutton(button_frame, text=self.texts["auto_push"], variable=self.auto_push)
+        self.auto_push_check.pack(side=tk.LEFT, padx=5)
+        
+        self.auto_generate_check = ttk.Checkbutton(button_frame, text=self.texts["auto_generate"], variable=self.auto_generate)
+        self.auto_generate_check.pack(side=tk.LEFT, padx=5)
+        
+        self.commit_button = ttk.Button(button_frame, text=self.texts["commit"], command=self.do_commit)
+        self.commit_button.pack(side=tk.RIGHT, padx=5)
         
         # Thêm tooltip
-        self.create_tooltip(button_frame.winfo_children()[0], "Tạo commit message bằng API Gemini")
-        self.create_tooltip(button_frame.winfo_children()[1], "Tự động tạo commit message và commit ngay lập tức")
-        self.create_tooltip(button_frame.winfo_children()[2], "Tự động push lên remote repository sau khi commit")
-        self.create_tooltip(button_frame.winfo_children()[3], "Tự động tạo commit message khi chuyển đến tab Commit")
-        self.create_tooltip(button_frame.winfo_children()[4], "Tạo commit với message hiện tại")
+        self.create_tooltip(self.generate_button, self.texts["tooltip_generate"])
+        self.create_tooltip(self.auto_commit_button, self.texts["tooltip_auto_commit"])
+        self.create_tooltip(self.auto_push_check, self.texts["tooltip_auto_push"])
+        self.create_tooltip(self.auto_generate_check, self.texts["tooltip_auto_generate"])
+        self.create_tooltip(self.commit_button, self.texts["tooltip_commit"])
         
         # Tab 4: Log
         log_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(log_frame, text="Log")
+        self.notebook.add(log_frame, text=self.texts["log_tab"])
         
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=20, width=80, wrap=tk.WORD)
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=20, width=80, wrap=tk.WORD,
+            bg=self.theme["text_bg"], fg=self.theme["text_fg"])
         self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.configure(state="disabled")
         
@@ -484,11 +598,12 @@ class AutoCommitGUI:
         bottom_frame.pack(fill=tk.X, pady=5)
         
         # Thanh trạng thái
-        self.status_var = tk.StringVar(value="Sẵn sàng")
+        self.status_var = tk.StringVar(value=self.texts["ready"])
         ttk.Label(bottom_frame, textvariable=self.status_var).pack(side=tk.LEFT)
         
         # Nút thoát
-        ttk.Button(bottom_frame, text="Thoát", command=self.root.destroy).pack(side=tk.RIGHT)
+        self.exit_button = ttk.Button(bottom_frame, text=self.texts["exit"], command=self.root.destroy)
+        self.exit_button.pack(side=tk.RIGHT)
     
     def center_window(self):
         """Căn giữa cửa sổ chính"""
@@ -836,6 +951,9 @@ class AutoCommitGUI:
     
     def save_settings(self, settings):
         """Lưu cài đặt"""
+        old_lang = self.settings.get("language", "vi")
+        old_theme = self.settings.get("theme", "light")
+        
         self.settings = settings
         
         # Cập nhật biến toàn cục trong auto_commit.py
@@ -870,16 +988,33 @@ class AutoCommitGUI:
                 with open("auto_commit.py", 'w', encoding='utf-8') as file:
                     file.write(content)
                 
-                messagebox.showinfo("Thông báo", "Đã lưu cài đặt thành công.")
+                messagebox.showinfo(self.texts["notice"], self.texts["settings_saved"])
             except Exception as e:
                 auto_commit_logger.error(f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
-                messagebox.showerror("Lỗi", f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
+                messagebox.showerror(self.texts["error"], f"Lỗi khi cập nhật file auto_commit.py: {str(e)}")
                 
                 # Vẫn cập nhật biến toàn cục trong bộ nhớ
-                messagebox.showinfo("Thông báo", "Đã lưu cài đặt vào bộ nhớ (không cập nhật file).")
+                messagebox.showinfo(self.texts["notice"], self.texts["settings_saved_memory"])
         except Exception as e:
             auto_commit_logger.error(f"Lỗi khi cập nhật cài đặt: {str(e)}")
-            messagebox.showerror("Lỗi", f"Lỗi khi cập nhật cài đặt: {str(e)}")
+            messagebox.showerror(self.texts["error"], f"Lỗi khi cập nhật cài đặt: {str(e)}")
+        
+        # Cập nhật ngôn ngữ và theme nếu có thay đổi
+        if settings["language"] != old_lang:
+            self.current_lang = settings["language"]
+            self.update_language()
+        
+        if settings["theme"] != old_theme:
+            self.current_theme = settings["theme"]
+            self.theme = THEMES[self.current_theme]
+            self.apply_theme()
+            
+            # Cập nhật màu nền cho các text widget
+            self.system_info_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            self.git_info_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            self.diff_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            self.commit_message_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
+            self.log_text.configure(bg=self.theme["text_bg"], fg=self.theme["text_fg"])
     
     def update_variable(self, content, var_name, new_value):
         """Cập nhật giá trị biến trong nội dung file"""
