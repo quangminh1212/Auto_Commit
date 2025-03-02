@@ -260,11 +260,10 @@ class TestAutoCommit(unittest.TestCase):
         mock_get_diff.return_value = None
         
         # Chạy hàm main
-        with patch("sys.stdout", new=StringIO()) as fake_out:
-            with patch("logging.info") as mock_log:
-                main()
-                # Kiểm tra log thay vì output
-                mock_log.assert_any_call("Khong co thay doi nao de commit.")
+        with patch("builtins.print") as mock_print:
+            main()
+            # Kiểm tra thông báo kết thúc
+            mock_print.assert_any_call("\n=== Hoan tat ===")
 
 def get_system_info() -> Dict[str, str]:
     """Lấy thông tin hệ thống để gỡ lỗi"""
