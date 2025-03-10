@@ -7,12 +7,17 @@
         }
     },
     "git.enableSmartCommit": true,
-    "git.confirmSync": false,
+    "git.confirmSync": true,
     "git.autofetch": true,
     "github.copilot.enable": {
         "*": true
     },
     "python.analysis.generateWithTypeAnnotation": true,
     "github.copilot.chat.codesearch.enabled": true,
-    "github.copilot.chat.newWorkspaceCreation.enabled": true
+    "github.copilot.chat.newWorkspaceCreation.enabled": true,
+    "terminal.integrated.tabs.defaultColor": null,
+    "terminal.integrated.tabs.defaultIcon": "new-folder",
+    "github.copilot.advanced": {
+
+    }
 } 
