@@ -1,0 +1,27 @@
+// src/index.ts
+
+import { detectChanges } from './git/detector';
+import { commitChanges } from './git/committer';
+import { classifyChanges } from './analyzer/change-classifier';
+import { buildCommitMessage } from './generator/message-builder';
+import { loadConfig } from './config/index';
+
+const config = loadConfig();
+
+const main = async () => {
+    try {
+        const changes = await detectChanges();
+        if (changes.length > 0) {
+            const classifiedChanges = classifyChanges(changes);
+            const commitMessage = buildCommitMessage(classifiedChanges);
+            await commitChanges(commitMessage);
+            console.log('Changes committed successfully!');
+        } else {
+            console.log('No changes detected.');
+        }
+    } catch (error) {
+        console.error('Error during autocommit process:', error);
+    }
+};
+
+main();

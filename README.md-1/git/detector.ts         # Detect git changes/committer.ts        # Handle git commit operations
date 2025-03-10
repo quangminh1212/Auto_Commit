@@ -1,0 +1,38 @@
+Here are the contents for the specified files:
+
+**src/git/detector.ts**
+
+import { execSync } from 'child_process';
+
+export function hasChanges(): boolean {
+    try {
+        const result = execSync('git status --porcelain').toString();
+        return result.length > 0;
+    } catch (error) {
+        console.error('Error detecting changes:', error);
+        return false;
+    }
+}
+
+export function getChanges(): string {
+    try {
+        const result = execSync('git diff --name-status').toString();
+        return result;
+    } catch (error) {
+        console.error('Error getting changes:', error);
+        return '';
+    }
+}
+
+**src/git/committer.ts**
+
+import { execSync } from 'child_process';
+
+export function commitChanges(message: string): void {
+    try {
+        execSync(`git add .`);
+        execSync(`git commit -m "${message}"`);
+    } catch (error) {
+        console.error('Error committing changes:', error);
+    }
+}

@@ -1,0 +1,11 @@
+import { ChangeType } from './types';
+
+export function classifyChange(diff: string): ChangeType {
+    if (diff.startsWith('+')) {
+        return ChangeType.ADDITION;
+    } else if (diff.startsWith('-')) {
+        return ChangeType.DELETION;
+    } else {
+        return ChangeType.MODIFICATION;
+    }
+}

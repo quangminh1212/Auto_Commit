@@ -1,0 +1,71 @@
+# change-classifier.ts
+
+export type ChangeType = 'addition' | 'deletion' | 'modification';
+
+export interface Change {
+    type: ChangeType;
+    filePath: string;
+}
+
+export function classifyChanges(diff: string): Change[] {
+    const changes: Change[] = [];
+    const lines = diff.split('\n');
+
+    lines.forEach(line => {
+        if (line.startsWith('+') && !line.startsWith('+++')) {
+            changes.push({ type: 'addition', filePath: extractFilePath(line) });
+        } else if (line.startsWith('-') && !line.startsWith('---')) {
+            changes.push({ type: 'deletion', filePath: extractFilePath(line) });
+        } else if (line.startsWith('M')) {
+            changes.push({ type: 'modification', filePath: extractFilePath(line) });
+        }
+    });
+
+    return changes;
+}
+
+function extractFilePath(line: string): string {
+    // Logic to extract file path from the line
+    return line.split(' ')[1]; // Example extraction logic
+}
+
+# ai-connector.ts
+
+export class AIConnector {
+    private apiUrl: string;
+
+    constructor(apiUrl: string) {
+        this.apiUrl = apiUrl;
+    }
+
+    public async analyzeChanges(changes: Change[]): Promise<string> {
+        // Logic to connect to AI service and analyze changes
+        const response = await fetch(this.apiUrl, {
+            method: 'POST',
+            body: JSON.stringify(changes),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        const result = await response.json();
+        return result.analysis;
+    }
+}
+
+# templates.ts
+
+export const commitMessageTemplates = {
+    addition: 'Add: {{filePath}}',
+    deletion: 'Remove: {{filePath}}',
+    modification: 'Update: {{filePath}}',
+};
+
+export function getCommitMessage(changeType: string, filePath: string): string {
+    const template = commitMessageTemplates[changeType];
+    return template.replace('{{filePath}}', filePath);
+}
+
+# index.ts
+
+export function utilityFunctionExample(param: string): string {
+    return `Utility function called with param: ${param}`;
+}

@@ -1,0 +1,26 @@
+src
+├── index.ts                # Main entry point
+├── git
+│   ├── detector.ts         # Detect git changes
+│   ├── committer.ts        # Handle git commit operations
+│   └── diff-parser.ts      # Parse git diffs
+├── analyzer
+│   ├── change-classifier.ts # Classify types of changes
+│   └── ai-connector.ts     # Optional AI service connection
+├── generator
+│   ├── message-builder.ts  # Build commit messages
+│   └── templates.ts        # Commit message templates
+├── config
+│   └── index.ts            # Configuration management
+└── utils
+    └── index.ts            # Utility functions
+tests
+├── unit
+│   ├── analyzer.test.ts
+│   ├── generator.test.ts
+│   └── git.test.ts
+└── integration
+    └── workflow.test.ts
+package.json
+tsconfig.json
+README.md

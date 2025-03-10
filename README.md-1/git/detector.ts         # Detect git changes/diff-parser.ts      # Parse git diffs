@@ -1,0 +1,51 @@
+Here are the contents for the specified files:
+
+**src/git/detector.ts**
+
+import { execSync } from 'child_process';
+
+export function hasChanges(): boolean {
+    try {
+        const result = execSync('git status --porcelain').toString();
+        return result.length > 0;
+    } catch (error) {
+        console.error('Error checking for changes:', error);
+        return false;
+    }
+}
+
+export function getChangedFiles(): string[] {
+    try {
+        const result = execSync('git diff --name-only').toString();
+        return result.split('\n').filter(file => file.length > 0);
+    } catch (error) {
+        console.error('Error getting changed files:', error);
+        return [];
+    }
+}
+
+**src/git/diff-parser.ts**
+
+import { execSync } from 'child_process';
+
+export function parseDiff(): string {
+    try {
+        const diff = execSync('git diff').toString();
+        return diff;
+    } catch (error) {
+        console.error('Error parsing diff:', error);
+        return '';
+    }
+}
+
+export function getDiffStats(): { additions: number; deletions: number } {
+    try {
+        const stats = execSync('git diff --shortstat').toString();
+        const additions = parseInt(stats.match(/(\d+) insertion/)[1]) || 0;
+        const deletions = parseInt(stats.match(/(\d+) deletion/)[1]) || 0;
+        return { additions, deletions };
+    } catch (error) {
+        console.error('Error getting diff stats:', error);
+        return { additions: 0, deletions: 0 };
+    }
+}

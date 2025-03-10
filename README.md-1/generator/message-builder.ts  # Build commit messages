@@ -1,0 +1,32 @@
+// src/generator/message-builder.ts
+
+import { ChangeType } from '../analyzer/change-classifier';
+import { commitMessageTemplates } from './templates';
+
+export function buildCommitMessage(changes: ChangeType[]): string {
+    const messageParts: string[] = [];
+
+    changes.forEach(change => {
+        switch (change.type) {
+            case 'addition':
+                messageParts.push(`Added: ${change.description}`);
+                break;
+            case 'deletion':
+                messageParts.push(`Removed: ${change.description}`);
+                break;
+            case 'modification':
+                messageParts.push(`Modified: ${change.description}`);
+                break;
+            default:
+                break;
+        }
+    });
+
+    const message = messageParts.join('\n');
+    return applyTemplate(message);
+}
+
+function applyTemplate(message: string): string {
+    const template = commitMessageTemplates.default || '';
+    return template.replace('{{message}}', message);
+}
