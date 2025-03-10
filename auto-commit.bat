@@ -4,11 +4,31 @@ setlocal enabledelayedexpansion
 echo Auto-Commit Tool
 echo ===============
 
-:: Check for test mode parameter
+:: Check for parameters
 set TEST_MODE=0
+set OPEN_COPILOT=0
+
+:parse_args
+if "%1"=="" goto end_parse_args
 if /i "%1"=="-test" set TEST_MODE=1
 if /i "%1"=="--test" set TEST_MODE=1
 if /i "%1"=="-t" set TEST_MODE=1
+if /i "%1"=="-copilot" set OPEN_COPILOT=1
+if /i "%1"=="--copilot" set OPEN_COPILOT=1
+if /i "%1"=="-c" set OPEN_COPILOT=1
+if /i "%1"=="-help" goto show_help
+if /i "%1"=="--help" goto show_help
+if /i "%1"=="-h" goto show_help
+shift
+goto parse_args
+:end_parse_args
+
+:: Open GitHub Copilot if requested
+if %OPEN_COPILOT%==1 (
+    echo Opening GitHub Copilot agent...
+    start "" code --command github.copilot.show
+    exit /b 0
+)
 
 :: Check if git is installed
 git --version > nul 2>&1
@@ -52,4 +72,18 @@ if %TEST_MODE%==1 (
     echo Commit completed successfully.
 )
 
+goto end
+
+:show_help
+echo.
+echo Usage: auto-commit.bat [options]
+echo.
+echo Options:
+echo   -t, --test       Test mode - shows what would happen without making changes
+echo   -c, --copilot    Open GitHub Copilot agent in VS Code
+echo   -h, --help       Show this help message
+echo.
+exit /b 0
+
+:end
 pause
