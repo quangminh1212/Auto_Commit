@@ -12,8 +12,8 @@ A tool to automatically commit changes to a git repository at regular intervals 
 ## Installation
 
 1. Clone this repository
-2. Run the setup script appropriate for your platform
-3. Configure your settings
+2. Make sure Git is installed and available in your PATH
+3. Run `python setup.py` to verify requirements
 
 ## Usage
 
@@ -50,16 +50,15 @@ python main.py --once
 
 ## Configuration
 
-Edit the `config.json` file to customize:
-- Commit frequency
-- Message templates
-- File exclusions
-- And more
+Edit the `config.py` file to customize:
+- Default commit frequency
+- Default message templates
+- Default watch directory
 
 ## Requirements
 
 - Git installed and configured
-- Node.js v12.0 or higher
+- Python 3.6 or higher
 
 ## License
 
