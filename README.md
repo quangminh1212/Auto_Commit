@@ -1,14 +1,13 @@
 # Auto Commit
 
-A tool for automating Git commits for your projects. This utility helps developers maintain a consistent commit history with minimal effort.
+A tool to automatically commit changes to a git repository at regular intervals or when changes are detected.
 
 ## Features
 
-- Automatic commit detection
-- Customizable commit messages
-- Schedule-based commits
-- Easy setup and configuration
-- Cross-platform support
+- Monitor directories for changes
+- Automatically commit changes at specified intervals
+- Customizable commit messages with time/date placeholders
+- Can run once or continuously monitor
 
 ## Installation
 
@@ -18,12 +17,36 @@ A tool for automating Git commits for your projects. This utility helps develope
 
 ## Usage
 
-Basic usage:
-```
-auto-commit start --path /path/to/your/repository
+```bash
+python main.py [options]
 ```
 
-For more options and advanced configuration, see the [User Guide](USER_GUIDE.md).
+### Options
+
+- `--watch, -w`: Directory to watch for changes (default: current directory)
+- `--interval, -i`: Commit interval in minutes (default: 60)
+- `--message, -m`: Commit message template (default: "Auto commit at {datetime}")
+- `--once`: Commit once and exit
+
+### Message Placeholders
+
+You can use the following placeholders in commit messages:
+- `{datetime}`: Current date and time (format: YYYY-MM-DD HH:MM:SS)
+- `{date}`: Current date (format: YYYY-MM-DD)
+- `{time}`: Current time (format: HH:MM:SS)
+
+## Examples
+
+```bash
+# Monitor current directory, commit every 30 minutes
+python main.py --interval 30
+
+# Watch specific directory with custom commit message
+python main.py --watch /path/to/project --message "Auto saved at {time}"
+
+# Commit once and exit
+python main.py --once
+```
 
 ## Configuration
 
@@ -44,4 +67,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+Contributions are welcome! Please feel free to submit a Pull Request.
